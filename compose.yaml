@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: planer
+      POSTGRES_PASSWORD: planer_local
+      POSTGRES_DB: planer
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - planer_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U planer -d planer"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  planer_pg:
