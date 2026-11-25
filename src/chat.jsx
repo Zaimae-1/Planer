@@ -8,6 +8,23 @@ const emojis = ['😀', '😂', '😊', '🥳', '🙌', '👍', '❤️', '🔥'
 const sizeLimit = 20 * 1024 * 1024;
 const preview = (message) => message.body || message.filename || 'Lampiran';
 
+function ChatSkeleton() {
+  return <div className="chat-skeleton" role="status">
+    <span className="sr-only">Memuat riwayat obrolan…</span>
+    <div aria-hidden="true" className="chat-skeleton-rows">
+      {['received', 'sent', 'received', 'sent'].map((side, index) => <div key={index} className={`chat-skeleton-row ${side}`}>
+        {side === 'received' && <i className="skeleton-block skeleton-avatar" />}
+        <div className="skeleton-bubble">
+          {side === 'received' && <i className="skeleton-block skeleton-name" />}
+          <i className="skeleton-block skeleton-line" />
+          {index !== 1 && <i className="skeleton-block skeleton-line short" />}
+          <i className="skeleton-block skeleton-time" />
+        </div>
+      </div>)}
+    </div>
+  </div>;
+}
+
 function Attachment({ message, src = `/api/messages/${message.id}/media` }) {
   const [failed, setFailed] = useState(false);
   const media = { src, 'aria-label': message.filename, onError: () => setFailed(true) };
@@ -48,6 +65,8 @@ function encodeFile(file) {
 export function Chat({ user, members, space }) {
   const [messages, setMessages] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [text, setText] = useState('');
   const [reply, setReply] = useState(null);
   const [file, setFile] = useState(null);
@@ -89,14 +108,19 @@ export function Chat({ user, members, space }) {
       const current = revision.current;
       try {
         const result = await api('/messages');
-        if (mounted && current === revision.current) { setMessages(result.messages); setLoaded(true); }
-      } catch (error) { if (mounted && current === revision.current) setError(error.message); }
+        if (mounted && current === revision.current) {
+          setMessages(result.messages);
+          setLoaded(true);
+          setLoadError('');
+        }
+      } catch (error) { if (mounted && current === revision.current) setLoadError(error.message); }
       finally { fetching = false; }
     }
     read();
     const timer = setInterval(read, 2300);
-    return () => { mounted = false; clearInterval(timer); };
-  }, []);
+    document.addEventListener('visibilitychange', read);
+    return () => { mounted = false; clearInterval(timer); document.removeEventListener('visibilitychange', read); };
+  }, [loadAttempt]);
 
   useEffect(() => {
     if (nearBottom.current && thread.current) thread.current.scrollTop = thread.current.scrollHeight;
@@ -122,6 +146,8 @@ export function Chat({ user, members, space }) {
       revision.current++;
       nearBottom.current = true;
       setMessages(result.messages);
+      setLoaded(true);
+      setLoadError('');
       setText('');
       setReply(null);
       setFile(null);
@@ -157,10 +183,18 @@ export function Chat({ user, members, space }) {
         }}>
           {messages.length > 0 ? <ol className="message-list" aria-label="Riwayat obrolan" aria-live="polite">{messages.map((message) =>
             <Message key={message.id} message={message} mine={message.author === user.id} onReply={(selected) => { setReply(selected); field.current?.focus(); }} onPin={togglePin} />)}</ol>
-            : <div className="chat-empty"><MessageCircle size={29} /><p>{loaded ? 'Belum ada pesan. Mulai obrolan dengan tim.' : error ? 'Obrolan belum dapat dimuat.' : 'Memuat obrolan…'}</p></div>}
+            : !loaded && !loadError ? <ChatSkeleton />
+              : <div className="chat-empty">
+                <MessageCircle size={29} />
+                <p>{loaded ? 'Belum ada pesan. Mulai obrolan dengan tim.' : 'Obrolan belum dapat dimuat.'}</p>
+                {!loaded && <button className="button button-secondary" onClick={() => {
+                  setLoadError('');
+                  setLoadAttempt((attempt) => attempt + 1);
+                }}>Coba lagi</button>}
+              </div>}
         </div>
         <form className="chat-composer" onSubmit={send}>
-          <Feedback error={error} />
+          <Feedback error={error || (loaded ? loadError : '')} />
           {reply && <div className="compose-preview"><Reply size={17} /><span><strong>Balas {reply.name}</strong><small>{preview(reply)}</small></span><IconButton label="Batalkan balasan" onClick={() => setReply(null)}><X size={17} /></IconButton></div>}
           {file && <div className="compose-preview">{file.type.startsWith('image/') && fileURL ? <img src={fileURL} alt="" /> : file.type.startsWith('video/') ? <Video size={19} /> : <FileAudio2 size={19} />}
             <span><strong>{file.name}</strong><small>{Math.ceil(file.size / 1024)} KB</small></span><IconButton label="Lepas lampiran" onClick={() => { setFile(null); setFileURL(''); }}><X size={17} /></IconButton></div>}

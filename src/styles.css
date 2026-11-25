@@ -104,7 +104,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.08; }
 .calendar-weekdays, .calendar-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
 .calendar-weekdays { text-align: center; margin-bottom: 8px; color: var(--muted); font-size: .74rem; font-weight: 780; }
 .calendar-weekdays span:last-child { color: #a52c41; }
-.day { min-width: 0; height: clamp(72px, 6.3vw, 100px); position: relative; display: flex; flex-direction: column; align-items: stretch; color: var(--ink); padding: 7px; border-radius: 7px; border: 1px solid #e9e7e1; background: #fcfbf8; text-align: left; transition: transform .14s, box-shadow .14s, border-color .14s; }
+.day { min-width: 0; height: clamp(72px, 6.3vw, 100px); position: relative; display: flex; flex-direction: column; align-items: stretch; color: var(--ink); padding: 7px; border-radius: 7px; border: 1px solid #e9e7e1; background: #fcfbf8; text-align: left; }
 .day:hover { border-color: #9daafb; background: #f2f4ff; }
 .day:focus-visible { z-index: 1; }
 .day-top { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
@@ -114,7 +114,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.08; }
 .day-today { color: var(--blue-dark); background: #eef1ff; border-color: #9aa9ff; }
 .day-today .day-number { background: var(--blue); color: white; border-radius: 5px; }
 .today-marker { width: 6px; height: 6px; border-radius: 99px; background: var(--blue); margin-right: 3px; }
-.day-selected { z-index: 2; transform: scale(1.055); background: #eef1ff; border-color: var(--blue); box-shadow: 0 3px 10px #3145b52d; }
 .day-markers { display: flex; flex-direction: column; min-width: 0; gap: 2px; margin-top: 3px; overflow: hidden; }
 .day-marker { display: flex; gap: 4px; border-radius: 3px; align-items: center; padding: 2px 4px; min-width: 0; font-size: .60rem; line-height: 1.2; font-weight: 750; }
 .day-marker span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -130,12 +129,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.08; }
 .calendar-footer { display: flex; flex-wrap: wrap; gap: 8px 14px; border-top: 1px solid #eeede8; margin-top: 13px; padding-top: 13px; color: var(--muted); font-size: .7rem; }
 .calendar-footer span { display: inline-flex; align-items: center; gap: 5px; }
 .legend-dot { width: 7px; height: 7px; border-radius: 100%; background: var(--dot); }
-.day-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
-.day-dismiss { position: fixed; inset: 0; border: 0; padding: 0; background: transparent; pointer-events: auto; width: 100%; cursor: default; }
-.day-popover { pointer-events: auto; position: absolute; z-index: 1; background: white; border: 1px solid #b5bdf0; box-shadow: 0 12px 36px #16194b35; border-radius: 11px; padding: 13px; max-height: min(420px, 76vh); overflow: auto; }
-.day-popover .modal-heading { margin-bottom: 9px; }
-.day-popover .modal-heading small { color: var(--blue-dark); font-size: .61rem; letter-spacing: .095em; font-weight: 850; }
-.day-popover .modal-heading h2 { font-size: 1.24rem; margin-top: 4px; }
 .day-empty { display: flex; align-items: center; gap: 8px; color: var(--muted); background: var(--paper); border-radius: 7px; padding: 10px; font-size: .84rem; margin-bottom: 8px; }
 .day-events, .holiday-list { display: grid; gap: 4px; margin-bottom: 10px; }
 .day-events li, .holiday-list li { display: flex; align-items: center; gap: 7px; padding: 7px; background: #f8f8f5; border-radius: 6px; font-size: .84rem; }
@@ -166,7 +159,7 @@ progress::-moz-progress-bar { background: var(--blue); border-radius: 20px; }
 .agenda-date small { font-size: .56rem; line-height: 1.5; text-transform: uppercase; font-weight: 900; }
 .agenda-info { display: grid; gap: 3px; font-size: .81rem; overflow-wrap: anywhere; }
 .agenda-info small { color: var(--muted); font-size: .69rem; }
-.summary-today { width: 100%; justify-content: space-between; margin-top: 11px; }
+.summary-all { width: 100%; justify-content: space-between; margin-top: 11px; }
 .empty-summary { color: var(--muted); font-size: .82rem; padding: 6px 0; }
 .member-list { display: grid; gap: 5px; margin-top: 12px; }
 .member-row { min-width: 0; display: flex; align-items: center; gap: 8px; border: 1px solid #edebe6; border-radius: 7px; padding: 6px 7px; background: #fcfbf8; }

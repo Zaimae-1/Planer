@@ -1,0 +1,53 @@
+:root {
+  --motion-hover: 140ms;
+  --motion-panel: 260ms;
+  --motion-exit: 185ms;
+  --motion-ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+:where(button, a, summary, input, select, textarea, .brand-icon, .channel-field label) {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: var(--motion-hover);
+  transition-timing-function: var(--motion-ease);
+}
+
+.profile-menu summary:hover { background: var(--blue-soft); }
+.brand:hover .brand-icon { background: var(--blue-dark); }
+.text-button:hover, .page-footer a:hover, .demo-account-link:hover { color: var(--blue); }
+.form :is(input, select):hover, .chat-composer textarea:hover, .space-switcher select:hover { border-color: #9daafb; }
+.channel-field label:hover { border-color: #a6b0f4; }
+
+@media (hover: hover) and (pointer: fine) {
+  .day:hover { z-index: 1; transform: translateY(-2px); box-shadow: 0 5px 12px #243ee615; }
+  .button:not(.button-lime):hover:enabled, .icon-button:hover:enabled { transform: translateY(-1px); }
+  .button:active:enabled, .icon-button:active:enabled { transform: translateY(1px); }
+  .agenda-event > svg, .summary-all > svg, .agenda-list-card > svg { transition: transform var(--motion-hover) var(--motion-ease); }
+  :is(.agenda-event, .summary-all, .agenda-list-card):hover > svg { transform: translateX(3px); }
+  .agenda-list-card:hover { transform: translateY(-2px); }
+}
+
+body:has(.animated-dialog[open]) { overflow: hidden; }
+.animated-dialog[open] { animation: dialog-enter var(--motion-panel) var(--motion-ease) both; }
+.animated-dialog[open]::backdrop { background: #16182f66; animation: backdrop-enter var(--motion-panel) var(--motion-ease) both; }
+.agenda-dialog[open]::backdrop { backdrop-filter: blur(7px); }
+.animated-dialog[open][data-closing] { animation: dialog-exit var(--motion-exit) var(--motion-ease) both; pointer-events: none; }
+.animated-dialog[open][data-closing]::backdrop { animation: backdrop-exit var(--motion-exit) var(--motion-ease) both; }
+.agenda-editor { animation: editor-enter var(--motion-panel) var(--motion-ease) 35ms both; }
+.agenda-editor[data-closing] { animation: editor-exit var(--motion-exit) var(--motion-ease) both; pointer-events: none; }
+.skeleton-block::after {
+  position: absolute; inset: 0; content: ''; background: linear-gradient(90deg, transparent, #ffffff96, transparent);
+  animation: shimmer 1.25s linear infinite;
+}
+
+@keyframes dialog-enter { from { opacity: 0; transform: translateY(12px) scale(.975); } }
+@keyframes dialog-exit { to { opacity: 0; transform: translateY(7px) scale(.985); } }
+@keyframes backdrop-enter { from { opacity: 0; } }
+@keyframes backdrop-exit { to { opacity: 0; } }
+@keyframes editor-enter { from { opacity: 0; transform: translate(var(--editor-axis)); } }
+@keyframes editor-exit { to { opacity: 0; transform: translate(var(--editor-axis)); } }
+@keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition-duration: 0s !important; }
+  :is(.day, .button, .icon-button, .agenda-list-card):hover, :is(.agenda-event, .summary-all, .agenda-list-card):hover > svg { transform: none; }
+}

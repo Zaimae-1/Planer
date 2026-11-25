@@ -36,14 +36,14 @@ export function NewTeamForm({ close }) {
       location.assign(spaceHref('/dashboard', team.id));
     } catch (error) { setError(error.message); setBusy(false); }
   }
-  return <Modal title="Buat tim baru" close={close}>
+  return <Modal title="Buat tim baru" close={close}>{(dismiss) => (
     <form className="form" onSubmit={submit}>
       <p className="muted">Tim baru mendapat kalender bersama dan grup chat.</p>
       <label>Nama tim<input name="name" placeholder="Contoh: Panitia Gathering" minLength={2} maxLength={60} required autoFocus /></label>
       <Feedback error={error} />
-      <div className="modal-actions"><button type="button" className="button button-secondary" onClick={close}>Batal</button><button className="button button-primary" disabled={busy}>{busy ? 'Membuat…' : 'Buat tim'}</button></div>
+      <div className="modal-actions"><button type="button" className="button button-secondary" onClick={dismiss}>Batal</button><button className="button button-primary" disabled={busy}>{busy ? 'Membuat…' : 'Buat tim'}</button></div>
     </form>
-  </Modal>;
+  )}</Modal>;
 }
 
 export function ChooseTeam({ page, spaces, onCreate }) {

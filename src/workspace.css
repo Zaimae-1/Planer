@@ -43,6 +43,26 @@
 .notification-status.accepted { background: #ecf4d7; color: #4a6016; }
 .notification .button { white-space: nowrap; }
 
+.agenda-back { margin-bottom: 15px; }
+.agenda-month + .agenda-month { margin-top: 24px; }
+.agenda-month > h2 { font-size: 1.14rem; letter-spacing: -.035em; margin-bottom: 10px; }
+.agenda-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.agenda-list-card {
+  height: 100%; min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 11px; align-items: center; padding: 13px;
+}
+.agenda-list-card:hover { border-color: #b4bef6; box-shadow: 0 6px 15px #243ee613; }
+.agenda-list-card > svg { color: var(--muted); }
+.agenda-list-card .agenda-date { width: 48px; height: 52px; gap: 2px; }
+.agenda-list-card .agenda-date strong { font-size: 1.32rem; }
+.agenda-card-copy { min-width: 0; display: grid; gap: 4px; overflow-wrap: anywhere; }
+.agenda-card-copy h3 { font-family: inherit; font-size: .98rem; }
+.agenda-card-copy time { color: var(--muted); font-size: .76rem; }
+.agenda-category { justify-self: start; padding: 2px 6px; border-radius: 4px; background: var(--tag); color: var(--tag-ink); font-size: .67rem; font-weight: 780; }
+.agenda-status { display: inline-flex; align-items: center; gap: 3px; width: fit-content; padding: 4px 7px; border-radius: 15px; background: var(--paper); color: var(--muted); font-size: .69rem; font-weight: 770; white-space: nowrap; }
+.agenda-status.done { background: #ecf4d7; color: #4a6016; }
+
+@media (max-width: 1100px) { .agenda-card-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 1000px) { .space-bar-wrap { padding-inline: 23px; } }
 @media (max-width: 900px) {
   .app-shell { display: block; padding-bottom: calc(79px + env(safe-area-inset-bottom)); }
@@ -77,4 +97,8 @@
   .create-team svg { width: 13px; }
   .notification { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 7px; padding: 12px; }
   .notification-actions { grid-column: 2; flex-wrap: wrap; }
+  .agenda-list-card { grid-template-columns: auto minmax(0, 1fr) auto; padding: 10px; gap: 6px 9px; }
+  .agenda-list-card .agenda-date { grid-row: 1 / span 2; }
+  .agenda-list-card .agenda-status { grid-column: 2; }
+  .agenda-list-card > svg { grid-column: 3; grid-row: 1 / span 2; }
 }

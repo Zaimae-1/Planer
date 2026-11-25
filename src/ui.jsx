@@ -1,5 +1,5 @@
 import { CalendarCheck2, X } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useId, useLayoutEffect, useRef } from 'react';
 
 export const selectedSpace = new URLSearchParams(location.search).get('space');
 export const spaceHref = (path, id) => id ? `${path}?space=${encodeURIComponent(id)}` : path;
@@ -34,21 +34,41 @@ export function IconButton({ label, children, className = '', ...props }) {
   return <button type="button" className={`icon-button ${className}`} aria-label={label} title={label} {...props}>{children}</button>;
 }
 
-export function Modal({ children, title, close }) {
+export async function animateOut(element, complete) {
+  if (!element || element.hasAttribute('data-closing')) return;
+  element.setAttribute('data-closing', '');
+  await Promise.allSettled(element.getAnimations().map((animation) => animation.finished));
+  if (element.isConnected) complete();
+}
+
+export function Dialog({ children, className, titleId, close, onEscape }) {
   const ref = useRef(null);
-  useEffect(() => {
+  const outside = useRef(false);
+  useLayoutEffect(() => {
     const dialog = ref.current;
     dialog.showModal();
     return () => dialog.close();
   }, []);
-  return <dialog ref={ref} className="modal" aria-labelledby="modal-title"
-    onCancel={(event) => { event.preventDefault(); close(); }}
-    onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
-    <div className="modal-content">
-      <div className="modal-heading"><h2 id="modal-title">{title}</h2><IconButton label="Tutup" onClick={close}><X size={19} /></IconButton></div>
-      {children}
-    </div>
+  const dismiss = () => animateOut(ref.current, close);
+  return <dialog ref={ref} className={`animated-dialog ${className}`} aria-labelledby={titleId}
+    onCancel={(event) => { event.preventDefault(); (onEscape || dismiss)(); }}
+    onPointerDown={(event) => { outside.current = !event.target.closest('[data-dialog-panel]'); }}
+    onClick={(event) => {
+      if (outside.current && !event.target.closest('[data-dialog-panel]')) dismiss();
+      outside.current = false;
+    }}>
+    {children(dismiss)}
   </dialog>;
+}
+
+export function Modal({ children, title, close }) {
+  const titleId = useId();
+  return <Dialog titleId={titleId} className="modal" close={close}>{(dismiss) => (
+    <div className="modal-content" data-dialog-panel>
+      <div className="modal-heading"><h2 id={titleId}>{title}</h2><IconButton label="Tutup" onClick={dismiss}><X size={19} /></IconButton></div>
+      {children(dismiss)}
+    </div>
+  )}</Dialog>;
 }
 
 export function Feedback({ error }) {

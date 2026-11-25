@@ -1,12 +1,19 @@
-import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Clock3, Flag, Plus, Sparkles, UsersRound, X } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Clock3, Flag, Plus, Sparkles, UsersRound } from 'lucide-react';
 import { categories, dateKey, formatDate, fromKey, utcDate } from '../shared/dates.js';
 import { holidays } from './holidays.js';
-import { api, Feedback, IconButton, MemberRow } from './ui.jsx';
-import { DayDetails, EventForm } from './events.jsx';
+import { api, Feedback, IconButton, MemberRow, spaceHref } from './ui.jsx';
+import { AgendaDialog } from './events.jsx';
 
 const weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const monthLabel = (date) => formatDate(date, { month: 'long', year: 'numeric' });
+
+function linkedDate() {
+  const key = new URLSearchParams(location.search).get('date');
+  if (!key || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return null;
+  const date = fromKey(key);
+  return Number.isFinite(date.valueOf()) && dateKey(date) === key ? key : null;
+}
 
 function Hero({ user, space, onAdd }) {
   return <section className="hero">
@@ -20,7 +27,7 @@ function Hero({ user, space, onAdd }) {
   </section>;
 }
 
-function ActivitySummary({ events, month, selectDay, today }) {
+function ActivitySummary({ events, month, selectDay, today, space }) {
   const current = events.filter((event) => event.date.startsWith(month));
   const done = current.filter((event) => event.done).length;
   const upcoming = current.filter((event) => !event.done && event.date >= today);
@@ -39,7 +46,7 @@ function ActivitySummary({ events, month, selectDay, today }) {
         <ChevronRight size={16} aria-hidden="true" />
       </button>
     </li>)}</ul> : <p className="empty-summary">Belum ada agenda mendatang pada bulan ini.</p>}
-    <button className="text-button summary-today" onClick={() => selectDay(today)}>Lihat agenda hari ini <ArrowRight size={16} /></button>
+    <a className="text-button summary-all" href={spaceHref('/agenda', space)}>Lihat semua agenda <ArrowRight size={16} /></a>
   </section>;
 }
 
@@ -52,15 +59,13 @@ function Members({ members, user }) {
 
 export function Dashboard({ user, workspace, refresh, networkError }) {
   const today = dateKey();
-  const [month, setMonth] = useState(() => fromKey(today.slice(0, 7) + '-01'));
-  const [selected, setSelected] = useState(null);
-  const [position, setPosition] = useState(null);
-  const [form, setForm] = useState(null);
+  const [agenda, setAgenda] = useState(() => {
+    const date = linkedDate();
+    return date ? { date, fromLink: true } : null;
+  });
+  const [month, setMonth] = useState(() => fromKey((agenda?.date || today).slice(0, 7) + '-01'));
   const [pending, setPending] = useState({});
   const [error, setError] = useState('');
-  const calendar = useRef(null);
-  const close = useRef(null);
-  const dayButtons = useRef(new Map());
   const { events, members, space } = workspace;
   const monthKey = dateKey(month).slice(0, 7);
   const year = month.getUTCFullYear();
@@ -70,37 +75,20 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
   const days = Array.from({ length: weeks * 7 }, (_, index) => dateKey(utcDate(year, monthIndex, index + 1 - offset)));
   const grouped = Map.groupBy(events, (event) => event.date);
 
-  function selectDay(key) {
+  function selectDay(key, startAdding = false) {
     setMonth(fromKey(key.slice(0, 7) + '-01'));
     setError('');
-    setSelected(key);
+    setAgenda({ date: key, startAdding });
   }
 
-  function closeDay() {
-    const button = dayButtons.current.get(selected);
-    setSelected(null);
-    button?.focus();
-  }
-
-  useEffect(() => {
-    if (!selected) return;
-    function place() {
-      const day = dayButtons.current.get(selected)?.getBoundingClientRect();
-      const bounds = calendar.current?.getBoundingClientRect();
-      if (!day || !bounds) return;
-      const width = Math.min(340, bounds.width - 22);
-      const left = day.right + width + 14 < bounds.right ? day.right + 10 : Math.max(bounds.left + 10, day.left - width - 10);
-      setPosition({ left: left - bounds.left, top: Math.max(75, Math.min(day.top - bounds.top, bounds.height - 315)), width });
+  function closeAgenda() {
+    if (agenda.fromLink) {
+      const url = new URL(location.href);
+      url.searchParams.delete('date');
+      history.replaceState(history.state, '', url);
+      requestAnimationFrame(() => document.querySelector(`.day[data-date="${agenda.date}"]`)?.focus());
     }
-    place();
-    close.current?.focus({ preventScroll: true });
-    window.addEventListener('resize', place);
-    return () => window.removeEventListener('resize', place);
-  }, [selected, month]);
-
-  function changeMonth(offset) {
-    setSelected(null);
-    setMonth(utcDate(year, monthIndex + offset));
+    setAgenda(null);
   }
 
   async function toggleEvent(event) {
@@ -121,19 +109,30 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
     }
   }
 
+  async function saveEvent(form, fields) {
+    if (form.remove) {
+      await api(`/events/${form.id}`, 'DELETE');
+    } else {
+      await api(form.id ? `/events/${form.id}` : '/events', form.id ? 'PATCH' : 'POST', fields);
+      setAgenda((current) => current && { ...current, date: fields.date });
+      setMonth(fromKey(fields.date.slice(0, 7) + '-01'));
+    }
+    await refresh();
+  }
+
   return <main className="page dashboard">
-    <Hero user={user} space={space} onAdd={() => setForm({ date: selected || today })} />
+    <Hero user={user} space={space} onAdd={() => selectDay(today, true)} />
     <Feedback error={networkError} />
     <div className="dashboard-grid">
-      <section className="panel calendar" ref={calendar} aria-labelledby="calendar-title">
+      <section className="panel calendar" aria-labelledby="calendar-title">
         <div className="calendar-header">
           <div className="section-header"><span className="section-icon section-icon-blue"><CalendarDays size={21} /></span>
             <div><h2 id="calendar-title">{monthLabel(month)}</h2><p>{space.kind === 'team' ? 'Kalender tim' : 'Kalender pribadi'} · WIB</p></div>
           </div>
           <div className="calendar-actions">
-            <button className="button today-button" onClick={() => { setSelected(null); setMonth(fromKey(today.slice(0, 7) + '-01')); }}>Hari ini</button>
-            <IconButton label="Bulan sebelumnya" onClick={() => changeMonth(-1)}><ChevronLeft size={19} /></IconButton>
-            <IconButton label="Bulan berikutnya" onClick={() => changeMonth(1)}><ChevronRight size={19} /></IconButton>
+            <button className="button today-button" onClick={() => setMonth(fromKey(today.slice(0, 7) + '-01'))}>Hari ini</button>
+            <IconButton label="Bulan sebelumnya" onClick={() => setMonth(utcDate(year, monthIndex - 1))}><ChevronLeft size={19} /></IconButton>
+            <IconButton label="Bulan berikutnya" onClick={() => setMonth(utcDate(year, monthIndex + 1))}><ChevronRight size={19} /></IconButton>
           </div>
         </div>
         <div className="calendar-weekdays" aria-hidden="true">{weekdays.map((day) => <span key={day}>{day}</span>)}</div>
@@ -149,13 +148,10 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
               ...holidayMarkers.filter(({ color }) => color === 'violet'),
             ];
             const red = index % 7 === 6 || notes.some(([, , color]) => color === 'red');
-            return <button key={key} type="button" ref={(element) => {
-              if (element) dayButtons.current.set(key, element);
-              else dayButtons.current.delete(key);
-            }}
-              aria-current={key === today ? 'date' : undefined} aria-expanded={selected === key}
-              className={`day ${inMonth ? '' : 'day-outside'} ${key === today ? 'day-today' : ''} ${red ? 'day-red' : ''} ${selected === key ? 'day-selected' : ''}`}
-              onClick={() => selected === key ? closeDay() : selectDay(key)}>
+            return <button key={key} type="button" aria-haspopup="dialog" data-date={key}
+              aria-current={key === today ? 'date' : undefined}
+              className={`day ${inMonth ? '' : 'day-outside'} ${key === today ? 'day-today' : ''} ${red ? 'day-red' : ''}`}
+              onClick={() => selectDay(key)}>
               <span className="day-top"><span className="day-number">{Number(key.slice(-2))}</span>{key === today && <span className="today-marker" />}</span>
               <span className="sr-only">{` ${monthLabel(fromKey(key))}, ${list.length} kegiatan${markers.length ? `, ${markers.map(({ title }) => title).join(', ')}` : ''}`}</span>
               <span className="day-markers" aria-hidden="true">{markers.slice(0, 2).map((item, i) => <span className={`day-marker ${item.color}`} key={i}><i /><span>{item.title}</span></span>)}
@@ -167,37 +163,15 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
         <div className="calendar-footer">
           <span><i className="legend-dot rapat" /> Rapat</span><span><i className="legend-dot kegiatan" /> Kegiatan</span><span><i className="legend-dot tenggat" /> Tenggat</span><span><i className="legend-dot red" /> Libur nasional</span><span><i className="legend-dot orange" /> Cuti bersama</span><span><i className="legend-dot violet" /> Peringatan</span>
         </div>
-        {selected && <div className="day-overlay" onKeyDown={(event) => { if (event.key === 'Escape' && !form) closeDay(); }}>
-          <button type="button" className="day-dismiss" aria-hidden="true" tabIndex={-1} onClick={closeDay} />
-          <div className="day-popover" style={position || undefined}>
-            <div className="modal-heading">
-              <div><small>AGENDA HARIAN</small><h2>{formatDate(fromKey(selected), { weekday: 'long', day: 'numeric', month: 'long' })}</h2></div>
-              <IconButton ref={close} label="Tutup agenda harian" onClick={closeDay}><X size={18} /></IconButton>
-            </div>
-            <DayDetails notes={holidays(selected)} events={grouped.get(selected) || []} pending={pending} error={error}
-              onAdd={() => setForm({ date: selected })} onEdit={setForm}
-              onToggle={toggleEvent}
-              onRemove={(event) => setForm({ ...event, remove: true })} />
-          </div>
-        </div>}
       </section>
       <aside className="dashboard-aside" aria-label="Ringkasan tim">
-        <ActivitySummary events={events} month={monthKey} selectDay={selectDay} today={today} />
+        <ActivitySummary events={events} month={monthKey} selectDay={selectDay} today={today} space={space.id} />
         {space.kind === 'team' && <Members members={members} user={user} />}
       </aside>
     </div>
     <footer className="page-footer"><CalendarPlus size={16} /> Planer <span>·</span> <Flag size={14} /> <a href="https://www.setneg.go.id/baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_2026">SKB 2026</a><span>·</span><a href="https://setneg.go.id/baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_2027">SKB 2027</a><span>·</span><a href="https://www.un.org/en/observances/list-days-weeks">Hari internasional PBB</a></footer>
-    {form && <EventForm event={form} close={() => setForm(null)} onSave={async (fields) => {
-      if (form.remove) {
-        await api(`/events/${form.id}`, 'DELETE');
-        setForm(null);
-        await refresh();
-        return;
-      }
-      await api(form.id ? `/events/${form.id}` : '/events', form.id ? 'PATCH' : 'POST', fields);
-      setForm(null);
-      selectDay(fields.date);
-      await refresh();
-    }} />}
+    {agenda && <AgendaDialog date={agenda.date} startAdding={agenda.startAdding} close={closeAgenda}
+      notes={holidays(agenda.date)} events={grouped.get(agenda.date) || []} pending={pending}
+      error={error} onToggle={toggleEvent} onSave={saveEvent} />}
   </main>;
 }

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, Bell, CalendarDays, ChevronDown, FlaskConical, LogIn, LogOut, MessageSquare, UserRoundPlus } from 'lucide-react';
 import '@fontsource-variable/dm-sans';
 import '@fontsource-variable/space-grotesk';
+import { AllAgenda } from './agenda.jsx';
 import { AuthPage } from './auth.jsx';
 import { Chat } from './chat.jsx';
 import { Dashboard } from './dashboard.jsx';
@@ -13,6 +14,7 @@ import { api, Avatar, Brand, Feedback, selectedSpace, spaceHref } from './ui.jsx
 import './styles.css';
 import './secondary.css';
 import './workspace.css';
+import './motion.css';
 
 const pathname = location.pathname.replace(/\/$/, '') || '/';
 const activePage = pathname === '/' ? '/dashboard' : pathname;
@@ -35,7 +37,7 @@ function Navigation({ user, space, pending }) {
     <Brand space={space.id} />
     <nav className="nav-links" aria-label="Navigasi utama">
       {links.map(([url, label, Icon]) =>
-        <a href={spaceHref(url, space.id)} key={url} aria-current={activePage === url ? 'page' : undefined}>
+        <a href={spaceHref(url, space.id)} key={url} aria-current={activePage === url ? 'page' : activePage === '/agenda' && url === '/dashboard' ? 'location' : undefined}>
           <Icon size={19} aria-hidden="true" /> <span>{label}</span>
           {url === '/notifications' && pending > 0 && <span className="nav-count"><span className="sr-only">Undangan baru </span>{pending > 9 ? '9+' : pending}</span>}
         </a>)}
@@ -121,7 +123,8 @@ function WorkspaceApp() {
         : teamPage && space.kind === 'personal' ? <main className="page inner-page"><ChooseTeam page={activePage} spaces={spaces} onCreate={onCreate} /></main>
           : activePage === '/messages' ? <Chat user={user} members={members} space={space} />
             : activePage === '/invite' ? <InvitePage user={user} members={members} space={space} />
-              : <Dashboard user={user} workspace={workspace} refresh={refresh} networkError={error} />}
+              : activePage === '/agenda' ? <AllAgenda workspace={workspace} error={error} />
+                : <Dashboard user={user} workspace={workspace} refresh={refresh} networkError={error} />}
     </div>
     {newTeam && <NewTeamForm close={() => setNewTeam(false)} />}
   </div>;
