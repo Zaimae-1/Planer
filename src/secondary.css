@@ -262,7 +262,7 @@
 @media (max-width: 620px) {
   .page { padding-inline: 13px; }
   .brand-icon { width: 32px; height: 32px; }
-  .profile-menu summary { gap: 6px; }
+  .profile-trigger { gap: 6px; }
   .page { padding-top: 15px; }
   .hero { min-height: 174px; border-radius: 11px; }
   .hero-art { width: 55%; background-size: auto 77%; background-position: 92% 70%; mask-image: linear-gradient(90deg, transparent, black 37%); }

@@ -47,14 +47,12 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.08; }
 .header-profile { display: flex; gap: 12px; align-items: center; max-width: 100%; }
 .demo-badge { background: #f3f5e6; color: #4f5721; font-size: .74rem; font-weight: 800; border-radius: 100px; padding: 5px 9px; display: inline-flex; align-items: center; gap: 5px; }
 .profile-menu { position: relative; min-width: 0; }
-.profile-menu summary { cursor: pointer; display: flex; align-items: center; gap: 9px; border-radius: 8px; list-style: none; padding: 3px; }
-.profile-menu summary::-webkit-details-marker { display: none; }
-.profile-menu summary > span:nth-child(2) { display: grid; gap: 1px; font-size: .85rem; line-height: 1.12; max-width: 104px; min-width: 0; }
-.profile-menu summary strong, .profile-menu summary small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.profile-menu summary small { color: var(--muted); font-size: .68rem; }
-.profile-menu summary > svg { color: var(--muted); }
+.profile-trigger { width: 100%; display: flex; align-items: center; gap: 9px; border: 0; border-radius: 8px; padding: 3px; color: var(--ink); background: transparent; text-align: start; }
+.profile-copy { display: grid; flex: 1; gap: 1px; font-size: .85rem; line-height: 1.12; max-width: 104px; min-width: 0; }
+.profile-copy :is(strong, small) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-copy small { color: var(--muted); font-size: .68rem; }
+.profile-trigger > svg { color: var(--muted); }
 .account-menu { position: absolute; right: 0; top: calc(100% + 10px); display: grid; min-width: 196px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--white); box-shadow: 0 10px 25px #19192b1a; }
-.profile-menu:not([open]) .account-menu { display: none; }
 .account-menu a, .account-menu button { color: var(--ink); border: 0; text-align: left; background: transparent; display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 6px; font-size: .85rem; font-weight: 650; }
 .account-menu a:hover, .account-menu button:hover { background: var(--blue-soft); }
 .skip-link { position: fixed; z-index: 20; top: 12px; left: 12px; padding: 10px; transform: translateY(-150%); background: white; border-radius: 6px; }

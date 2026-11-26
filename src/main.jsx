@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronDown, FlaskConical, LogOut, MessageSquare, Settings2, UserRoundPlus } from 'lucide-react';
 import '@fontsource-variable/dm-sans';
@@ -34,6 +34,25 @@ const appPages = new Set(['/agenda', '/settings', ...links.map(([url]) => url)])
 
 function Navigation({ user, space, pending, activePage, unsaved }) {
   const [error, setError] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+  const profile = useRef(null);
+  const trigger = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function dismissOutside(event) {
+      if (!profile.current.contains(event.target)) setMenuOpen(false);
+    }
+    document.addEventListener('pointerdown', dismissOutside);
+    return () => document.removeEventListener('pointerdown', dismissOutside);
+  }, [menuOpen]);
+
+  function closeProfile() {
+    setMenuOpen(false);
+    trigger.current.focus({ preventScroll: true });
+  }
+
   async function logout() {
     if (unsaved.current && !window.confirm(t('Buang perubahan catatan yang belum disimpan?', 'Discard unsaved note changes?'))) return;
     setError('');
@@ -52,17 +71,28 @@ function Navigation({ user, space, pending, activePage, unsaved }) {
     {user.demo && <a className="demo-account-link" href="/register">{t('Buat akun', 'Create an account')} <ArrowUpRight size={15} /></a>}
     <div className="header-profile">
       {user.demo && <span className="demo-badge"><FlaskConical size={14} /> Demo</span>}
-      <details className="profile-menu">
-        <summary>
-          <Avatar name={user.name} src={avatarUrl(user)} /><span><strong>{user.name.split(' ')[0]}</strong><small>@{user.username}</small></span><ChevronDown size={15} />
+      <div className="profile-menu" ref={profile}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false);
+        }}
+        onKeyDown={(event) => {
+          if (menuOpen && event.key === 'Escape') {
+            event.preventDefault();
+            closeProfile();
+          }
+        }}>
+        <button type="button" className="profile-trigger" ref={trigger} aria-expanded={menuOpen} aria-controls={menuId}
+          onClick={() => setMenuOpen((open) => !open)}>
+          <Avatar name={user.name} src={avatarUrl(user)} /><span className="profile-copy"><strong>{user.name.split(' ')[0]}</strong><small>@{user.username}</small></span>
+          <ChevronDown size={15} aria-hidden="true" />
           <span className="sr-only">{t('Menu akun', 'Account menu')}</span>
-        </summary>
-        <div className="account-menu">
-          <a href={spaceHref('/settings', space.id)} onClick={(event) => event.currentTarget.closest('details').removeAttribute('open')}><Settings2 size={16} /> {t('Pengaturan', 'Settings')}</a>
-          <button onClick={logout}><LogOut size={16} /> {t('Keluar', 'Log out')}</button>
+        </button>
+        <div className="account-menu" id={menuId} inert={!menuOpen}>
+          <a href={spaceHref('/settings', space.id)} onClick={closeProfile}><Settings2 size={16} aria-hidden="true" /> {t('Pengaturan', 'Settings')}</a>
+          <button type="button" onClick={logout}><LogOut size={16} aria-hidden="true" /> {t('Keluar', 'Log out')}</button>
           <Feedback error={error} />
         </div>
-      </details>
+      </div>
     </div>
   </aside>;
 }

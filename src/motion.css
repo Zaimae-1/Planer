@@ -15,7 +15,25 @@
   transition-timing-function: var(--motion-ease);
 }
 
-.profile-menu summary:hover { background: var(--blue-soft); }
+.profile-trigger:is(:hover, [aria-expanded="true"]) { background: var(--blue-soft); }
+.profile-trigger > svg { transition: transform 180ms var(--motion-ease); }
+.profile-trigger[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.account-menu {
+  --account-offset: 6px;
+  visibility: hidden;
+  opacity: 0;
+  transform-origin: bottom right;
+  transform: translateY(var(--account-offset)) scale(.975);
+  transition: opacity 130ms var(--motion-ease), transform 130ms var(--motion-ease), visibility 130ms step-end;
+}
+.account-menu:not([inert]) {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition: opacity 180ms var(--motion-ease), transform 180ms var(--motion-ease), visibility 0s;
+}
+.account-menu :is(a, button) > svg { transition: transform var(--motion-hover) var(--motion-ease); }
+.account-menu :is(a, button):focus-visible { outline-offset: -2px; }
 .brand:hover .brand-icon { background: var(--blue-dark); }
 .text-button:hover, .page-footer a:hover, .demo-account-link:hover { color: var(--blue); }
 .form :is(input, select, textarea, .priority-trigger):hover, .chat-composer textarea:hover { border-color: #9daafb; }
@@ -25,6 +43,7 @@
   .day:hover { z-index: 1; transform: translateY(-2px); box-shadow: 0 5px 12px #243ee615; }
   .button:not(.button-lime):hover:enabled, .icon-button:hover:enabled { transform: translateY(-1px); }
   .button:active:enabled, .icon-button:active:enabled { transform: translateY(1px); }
+  .account-menu :is(a, button):hover > svg { transform: translateX(2px); }
   .agenda-event > svg { transition: transform var(--motion-hover) var(--motion-ease); }
   .agenda-event:hover > svg { transform: translateX(3px); }
 }
@@ -60,6 +79,6 @@ body:has(.animated-dialog[open]) { overflow: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition-duration: 0s !important; }
-  :is(.day, .button, .icon-button):hover, .agenda-event:hover > svg { transform: none; }
+  :is(.day, .button, .icon-button):hover, .agenda-event:hover > svg, .account-menu :is(a, button):hover > svg { transform: none; }
   .space-switcher[aria-busy="true"]::after { opacity: .6; transform: scaleX(.35); }
 }

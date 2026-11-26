@@ -7,7 +7,6 @@
 .app-sidebar .demo-account-link { margin: 18px 0 0 13px; }
 .app-sidebar .header-profile { margin-top: auto; border-top: 1px solid var(--line); padding-top: 12px; gap: 5px; flex-wrap: wrap; }
 .app-sidebar .profile-menu { flex: 1; }
-.profile-menu summary > span:nth-child(2) { flex: 1; }
 .app-sidebar .account-menu { top: auto; bottom: calc(100% + 9px); right: 0; }
 .workspace-content { min-width: 0; overflow-x: clip; }
 .space-bar-wrap { max-width: calc(var(--page-width) + 64px); margin-inline: auto; padding: 18px 32px 0; }
@@ -102,7 +101,7 @@
   .app-sidebar .brand { margin-left: 0; }
   .app-sidebar .header-profile { margin-top: 0; padding-top: 0; border: 0; flex-wrap: nowrap; margin-left: auto; }
   .app-sidebar .demo-account-link { display: none; }
-  .app-sidebar .account-menu { top: calc(100% + 8px); bottom: auto; }
+  .app-sidebar .account-menu { top: calc(100% + 8px); bottom: auto; --account-offset: -6px; transform-origin: top right; }
   .app-sidebar .nav-links {
     position: fixed; inset: auto auto calc(9px + env(safe-area-inset-bottom)) 50%; transform: translateX(-50%);
     flex-direction: row; width: min(calc(100vw - 20px), 490px); margin: 0; padding: 4px;
