@@ -5,6 +5,7 @@ import { holidays } from './holidays.js';
 import { api, Feedback, IconButton, MemberRow, spaceHref } from './ui.jsx';
 import { AgendaDialog } from './events.jsx';
 import { priorities } from './event-fields.jsx';
+import { formatEventTime } from './event-time.js';
 
 const weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const monthLabel = (date) => formatDate(date, { month: 'long', year: 'numeric' });
@@ -43,7 +44,7 @@ function ActivitySummary({ events, month, selectDay, today }) {
     {upcoming.length ? <ul className="agenda-list">{upcoming.slice(0, 7).map((event) => <li key={event.id}>
       <button className="agenda-event" onClick={() => selectDay(event.date)}>
         <span className={`agenda-date priority-${event.priority || 'none'}`}><strong>{Number(event.date.slice(-2))}</strong><small>{formatDate(fromKey(event.date), { month: 'short' })}</small></span>
-        <span className="agenda-info"><strong>{event.title}</strong><small>{event.time ? `${event.time} WIB` : 'Tanpa jam'}
+        <span className="agenda-info"><strong>{event.title}</strong><small>{formatEventTime(event.time)}
           {event.priority && event.priority !== 'none' && ` · ${priorities[event.priority]}`}</small></span>
         <ChevronRight size={16} aria-hidden="true" />
       </button>

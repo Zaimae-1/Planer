@@ -62,7 +62,7 @@
 .agenda-list-card .agenda-date strong { font-size: 1.32rem; }
 .agenda-card-copy { min-width: 0; display: grid; gap: 4px; overflow-wrap: anywhere; }
 .agenda-card-copy > strong { font-size: .98rem; }
-.agenda-card-copy time { color: var(--muted); font-size: .76rem; }
+.agenda-card-time { color: var(--muted); font-size: .76rem; }
 .agenda-status { display: inline-flex; align-items: center; gap: 3px; width: fit-content; padding: 4px 7px; border-radius: 15px; background: var(--paper); color: var(--muted); font-size: .69rem; font-weight: 770; white-space: nowrap; }
 .agenda-status.done { background: #ecf4d7; color: #4a6016; }
 .agenda-card-collapse { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows var(--motion-panel) var(--motion-ease), opacity var(--motion-hover) var(--motion-ease); }

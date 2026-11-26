@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { CalendarDays, Clock3, Flag, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { formatDate, fromKey } from '../shared/dates.js';
 import { EventFields, priorities } from './event-fields.jsx';
+import { formatEventTime, toEventTime } from './event-time.js';
 import { animateOut, Dialog, Feedback, IconButton } from './ui.jsx';
 
 function DayDetails({ holidays, events, pending, onAdd, onEdit, onToggle, onRemove, error, editorOpen, addButton }) {
@@ -17,7 +18,7 @@ function DayDetails({ holidays, events, pending, onAdd, onEdit, onToggle, onRemo
         <div>
           <strong>{event.title}</strong>
           <small className="event-meta">
-            {event.time && <Clock3 size={12} aria-hidden="true" />}{event.time ? `${event.time} WIB` : 'Tanpa jam'}
+            {event.time && <Clock3 size={12} aria-hidden="true" />}{formatEventTime(event.time)}
             {event.priority && event.priority !== 'none' && <span className={`agenda-priority priority-${event.priority}`}>{priorities[event.priority]}</span>}
           </small>
           {event.notes && <p className="event-notes">{event.notes}</p>}
@@ -37,9 +38,10 @@ function EventEditor({ event, panel, close, onSave }) {
   const title = event.remove ? 'Hapus kegiatan?' : event.id ? 'Edit kegiatan' : 'Tambah kegiatan';
   async function submit(e) {
     e.preventDefault();
+    const { clock, period, ...fields } = Object.fromEntries(new FormData(e.currentTarget));
     setError('');
     setBusy(true);
-    try { await onSave(event.remove ? null : Object.fromEntries(new FormData(e.currentTarget))); }
+    try { await onSave(event.remove ? null : { ...fields, time: toEventTime(clock, period) }); }
     catch (error) { setError(error.message); }
     finally { setBusy(false); }
   }

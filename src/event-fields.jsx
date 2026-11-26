@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Clock3 } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { dateKey, formatDate, fromKey, utcDate } from '../shared/dates.js';
 import { IconButton } from './ui.jsx';
+import { clockPattern, toClock } from './event-time.js';
 
 export const priorities = { none: 'Nothing', optional: 'Opsional', important: 'Important' };
 const weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -135,18 +136,33 @@ function EventPriority({ initial }) {
   </div>;
 }
 
+function EventTime({ time }) {
+  const { clock, period } = toClock(time);
+  const id = useId();
+  const hint = useId();
+  return <div className="event-field">
+    <label htmlFor={id}><span className="editor-time-label">Jam <small>(opsional, WIB)</small></span></label>
+    <div className="time-controls">
+      <input id={id} name="clock" defaultValue={clock} maxLength={5} placeholder="9.00" pattern={clockPattern}
+        inputMode="decimal" title="Masukkan jam seperti 9.00 atau 12.30." aria-describedby={hint} />
+      <fieldset className="time-period">
+        <legend className="sr-only">Periode jam</legend>
+        {['AM', 'PM'].map((value) => <label key={value}>
+          <input className="sr-only" type="radio" name="period" value={value} defaultChecked={period === value} />{value}
+        </label>)}
+      </fieldset>
+    </div>
+    <small id={hint} className="time-hint">12.00 AM = tengah malam. 12.00 PM = tengah hari.</small>
+  </div>;
+}
+
 export function EventFields({ event }) {
   const dateId = useId();
   return <>
     <label>Nama kegiatan<input name="title" defaultValue={event.title} maxLength={100} placeholder="Contoh: Briefing tim" required data-editor-focus /></label>
     <div className="form-row">
       <EventDate initial={event.date} id={dateId} />
-      <label><span className="editor-time-label">Jam <small>(opsional, WIB)</small></span>
-        <span className="field-with-icon">
-          <input name="time" defaultValue={event.time} maxLength={5} placeholder="HH:MM" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" title="Gunakan format 24 jam, misalnya 09:30" />
-          <Clock3 size={17} aria-hidden="true" />
-        </span>
-      </label>
+      <EventTime time={event.time} />
     </div>
     <EventPriority initial={event.priority} />
     <label><span className="editor-time-label">Notes <small>(opsional)</small></span>

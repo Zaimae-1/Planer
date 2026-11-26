@@ -69,11 +69,21 @@
 .agenda-editor textarea { resize: vertical; }
 .event-field { position: relative; min-width: 0; display: grid; align-content: start; gap: 5px; }
 .event-field-label { font-size: .83rem; font-weight: 790; }
+.time-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px; }
+.time-period { min-inline-size: 0; display: flex; border: 1px solid #dcdce4; border-radius: 7px; padding: 2px; margin: 0; }
+.form .time-period label {
+  min-width: 34px; display: grid; place-content: center; padding: 0 5px; border-radius: 4px;
+  color: var(--muted); font-size: .73rem; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: color var(--motion-hover), background-color var(--motion-hover);
+}
+.time-period label:hover { background: var(--paper); }
+.time-period label:has(:checked) { background: var(--blue-soft); color: var(--blue-dark); }
+.time-period label:has(:focus-visible) { outline: 2px solid var(--blue); }
+.time-hint { font-size: .69rem; color: var(--muted); }
 .field-with-icon { position: relative; display: block; }
 .form .field-with-icon input { padding-inline-end: 35px; }
-.field-with-icon .icon-button, .field-with-icon > svg { position: absolute; top: 50%; right: 3px; translate: 0 -50%; }
+.field-with-icon .icon-button { position: absolute; top: 50%; right: 3px; translate: 0 -50%; }
 .field-with-icon .icon-button { width: 32px; height: 33px; }
-.field-with-icon > svg { right: 10px; color: var(--muted); pointer-events: none; }
 .form .priority-trigger { display: flex; align-items: center; justify-content: space-between; gap: 7px; text-align: left; }
 .priority-trigger span { display: flex; align-items: center; gap: 9px; }
 .priority-trigger > svg { color: var(--muted); transition: transform var(--motion-hover) var(--motion-ease); }
