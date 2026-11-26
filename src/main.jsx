@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, Bell, CalendarDays, ChevronDown, FlaskConical, LogIn, LogOut, MessageSquare, UserRoundPlus } from 'lucide-react';
 import '@fontsource-variable/dm-sans';
-import '@fontsource-variable/space-grotesk';
+import '@fontsource-variable/source-sans-3';
 import { AllAgenda } from './agenda.jsx';
 import { AuthPage } from './auth.jsx';
 import { Chat } from './chat.jsx';
