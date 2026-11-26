@@ -9,10 +9,10 @@
 .form { display: grid; gap: 13px; }
 .form label, .copy-label { min-width: 0; display: grid; gap: 5px; align-content: start; font-size: .83rem; font-weight: 790; }
 .form label > small { font-size: .73rem; color: var(--muted); }
-.form input:not([type="radio"]), .form select, .copy-label input {
+.form input:not([type="radio"]), .form select, .form textarea, .form .priority-trigger, .copy-label input {
   width: 100%; min-width: 0; border: 1px solid #dcdce4; border-radius: 7px; min-height: 40px; padding: 8px 10px; color: var(--ink); background: white; font-weight: 500; font-size: .94rem;
 }
-.form input::placeholder, .chat-composer textarea::placeholder { color: #66667b; }
+.form :is(input, textarea)::placeholder, .chat-composer textarea::placeholder { color: #66667b; }
 .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 10px; }
 .form-actions, .modal-actions { display: flex; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
 .channel-field { display: flex; gap: 8px; margin: 0; padding: 0; border: 0; }
@@ -66,6 +66,40 @@
 .agenda-editor .modal-heading h3 { font-size: 1.38rem; letter-spacing: var(--heading-tracking); align-self: center; }
 .editor-time-label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 4px; }
 .editor-time-label small { color: var(--muted); font-size: .67rem; }
+.agenda-editor textarea { resize: vertical; }
+.event-field { position: relative; min-width: 0; display: grid; align-content: start; gap: 5px; }
+.event-field-label { font-size: .83rem; font-weight: 790; }
+.field-with-icon { position: relative; display: block; }
+.form .field-with-icon input { padding-inline-end: 35px; }
+.field-with-icon .icon-button, .field-with-icon > svg { position: absolute; top: 50%; right: 3px; translate: 0 -50%; }
+.field-with-icon .icon-button { width: 32px; height: 33px; }
+.field-with-icon > svg { right: 10px; color: var(--muted); pointer-events: none; }
+.form .priority-trigger { display: flex; align-items: center; justify-content: space-between; gap: 7px; text-align: left; }
+.priority-trigger span { display: flex; align-items: center; gap: 9px; }
+.priority-trigger > svg { color: var(--muted); transition: transform var(--motion-hover) var(--motion-ease); }
+.priority-trigger[aria-expanded="true"] > svg { transform: rotate(180deg); }
+.field-menu {
+  position: absolute; z-index: 2; inset: calc(100% + 5px) auto auto 0; padding: 5px;
+  background: var(--white); border: 1px solid #dfdff0; border-radius: 9px; box-shadow: 0 8px 20px #1e235222;
+  animation: field-menu-enter 150ms var(--motion-ease) both;
+}
+.priority-menu { width: 100%; display: grid; gap: 2px; }
+.priority-menu button, .date-menu-days button {
+  color: var(--ink); background: transparent; border: 0; border-radius: 6px; min-width: 0; min-height: 32px;
+}
+.priority-menu button { display: flex; align-items: center; gap: 9px; text-align: left; padding: 6px 8px; font-size: .84rem; }
+.priority-menu button > svg { margin-inline-start: auto; }
+.priority-menu button:hover, .priority-menu [aria-checked="true"], .date-menu-days button:hover { color: var(--blue-dark); background: var(--blue-soft); }
+.priority-menu button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.event-date-menu { width: 14.5rem; padding: 8px; }
+.date-menu-heading { display: flex; align-items: center; justify-content: space-between; gap: 4px; font-size: .81rem; margin-bottom: 4px; }
+.date-menu-heading .icon-button { width: 29px; height: 29px; }
+.date-menu-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center; gap: 2px; font-size: .8rem; }
+.date-menu-days small { color: var(--muted); margin-block: 2px; }
+.date-menu-days button { min-height: 29px; padding: 0; font-weight: 650; }
+.date-menu-days [aria-current="date"] { box-shadow: inset 0 0 0 1px #a6b0f4; }
+.date-menu-days [aria-pressed="true"], .date-menu-days [aria-pressed="true"]:hover { color: white; background: var(--blue); }
+@media (max-width: 350px) { .agenda-editor .form-row { grid-template-columns: minmax(0, 1fr); } }
 
 .auth-layout { min-height: 100svh; max-width: 1800px; margin: auto; display: grid; grid-template-columns: minmax(420px, .86fr) minmax(0, 1fr); background: white; }
 .auth-form-side { display: flex; flex-direction: column; padding: 26px clamp(24px, 4vw, 62px); }
@@ -201,7 +235,7 @@
   .agenda-stage.has-editor .agenda-main .modal-heading { padding-inline-end: 34px; }
   .agenda-editor .modal-heading { padding-inline-end: 0; }
   .agenda-editor { --editor-axis: 0, 14px; scroll-margin-block: 7px; border-inline-start: 0; border-block-start: 1px solid var(--line); }
-  .agenda-editor .form input, .agenda-editor .form select { font-size: 1rem; }
+  .agenda-editor .form :is(input, textarea, .priority-trigger) { font-size: 1rem; }
 }
 @media (max-width: 620px) {
   .page { padding-inline: 13px; }

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ArrowRight, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Clock3, Flag, Plus, Sparkles, UsersRound } from 'lucide-react';
-import { categories, dateKey, formatDate, fromKey, utcDate } from '../shared/dates.js';
+import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Clock3, Flag, List, Plus, Sparkles, UsersRound } from 'lucide-react';
+import { dateKey, formatDate, fromKey, utcDate } from '../shared/dates.js';
 import { holidays } from './holidays.js';
 import { api, Feedback, IconButton, MemberRow, spaceHref } from './ui.jsx';
 import { AgendaDialog } from './events.jsx';
+import { priorities } from './event-fields.jsx';
 
 const weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const monthLabel = (date) => formatDate(date, { month: 'long', year: 'numeric' });
@@ -27,7 +28,7 @@ function Hero({ user, space, onAdd }) {
   </section>;
 }
 
-function ActivitySummary({ events, month, selectDay, today, space }) {
+function ActivitySummary({ events, month, selectDay, today }) {
   const current = events.filter((event) => event.date.startsWith(month));
   const done = current.filter((event) => event.done).length;
   const upcoming = current.filter((event) => !event.done && event.date >= today);
@@ -41,12 +42,12 @@ function ActivitySummary({ events, month, selectDay, today, space }) {
     <div className="summary-label">AGENDA MENDATANG</div>
     {upcoming.length ? <ul className="agenda-list">{upcoming.slice(0, 7).map((event) => <li key={event.id}>
       <button className="agenda-event" onClick={() => selectDay(event.date)}>
-        <span className={`agenda-date ${event.category}`}><strong>{Number(event.date.slice(-2))}</strong><small>{formatDate(fromKey(event.date), { month: 'short' })}</small></span>
-        <span className="agenda-info"><strong>{event.title}</strong><small>{event.time ? `${event.time} WIB` : 'Tanpa jam'} <b aria-hidden="true">·</b> {categories[event.category]}</small></span>
+        <span className={`agenda-date priority-${event.priority || 'none'}`}><strong>{Number(event.date.slice(-2))}</strong><small>{formatDate(fromKey(event.date), { month: 'short' })}</small></span>
+        <span className="agenda-info"><strong>{event.title}</strong><small>{event.time ? `${event.time} WIB` : 'Tanpa jam'}
+          {event.priority && event.priority !== 'none' && ` · ${priorities[event.priority]}`}</small></span>
         <ChevronRight size={16} aria-hidden="true" />
       </button>
     </li>)}</ul> : <p className="empty-summary">Belum ada agenda mendatang pada bulan ini.</p>}
-    <a className="text-button summary-all" href={spaceHref('/agenda', space)}>Lihat semua agenda <ArrowRight size={16} /></a>
   </section>;
 }
 
@@ -113,9 +114,17 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
     if (form.remove) {
       await api(`/events/${form.id}`, 'DELETE', undefined, { space: space.id });
     } else {
-      await api(form.id ? `/events/${form.id}` : '/events', form.id ? 'PATCH' : 'POST', fields, { space: space.id });
-      setAgenda((current) => current && { ...current, date: fields.date });
-      setMonth(fromKey(fields.date.slice(0, 7) + '-01'));
+      if (form.id) {
+        const changes = Object.fromEntries(Object.entries(fields).filter(([name, value]) => (form[name] ?? '') !== value));
+        if (!Object.keys(changes).length) return;
+        await api(`/events/${form.id}`, 'PATCH', changes, { space: space.id });
+      } else {
+        await api('/events', 'POST', fields, { space: space.id });
+      }
+      if (fields.date !== agenda.date) {
+        setAgenda((current) => current && { ...current, date: fields.date });
+        setMonth(fromKey(fields.date.slice(0, 7) + '-01'));
+      }
     }
     await refresh();
   }
@@ -139,21 +148,22 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
         <div className="calendar-days">
           {days.map((key, index) => {
             const list = grouped.get(key) || [];
-            const notes = holidays(key);
+            const dayHolidays = holidays(key);
             const inMonth = key.startsWith(monthKey);
-            const holidayMarkers = notes.map(([title, , color]) => ({ title, color }));
+            const priority = ['important', 'optional'].find((level) => list.some((event) => event.priority === level)) || 'none';
+            const holidayMarkers = dayHolidays.map(([title, , color]) => ({ title, color }));
             const markers = [
               ...holidayMarkers.filter(({ color }) => color !== 'violet'),
-              ...list.map((event) => ({ title: event.title, color: event.category })),
+              ...list.map((event) => ({ title: event.title, color: `priority-${event.priority || 'none'}` })),
               ...holidayMarkers.filter(({ color }) => color === 'violet'),
             ];
-            const red = index % 7 === 6 || notes.some(([, , color]) => color === 'red');
-            return <button key={key} type="button" aria-haspopup="dialog" data-date={key}
+            const red = index % 7 === 6 || dayHolidays.some(([, , color]) => color === 'red');
+            return <button key={key} type="button" aria-haspopup="dialog" data-date={key} data-priority={priority}
               aria-current={key === today ? 'date' : undefined}
               className={`day ${inMonth ? '' : 'day-outside'} ${key === today ? 'day-today' : ''} ${red ? 'day-red' : ''}`}
               onClick={() => selectDay(key)}>
               <span className="day-top"><span className="day-number">{Number(key.slice(-2))}</span>{key === today && <span className="today-marker" />}</span>
-              <span className="sr-only">{` ${monthLabel(fromKey(key))}, ${list.length} kegiatan${markers.length ? `, ${markers.map(({ title }) => title).join(', ')}` : ''}`}</span>
+              <span className="sr-only">{` ${monthLabel(fromKey(key))}, ${list.length} kegiatan${priority !== 'none' ? `, ${priorities[priority]}` : ''}${markers.length ? `, ${markers.map(({ title }) => title).join(', ')}` : ''}`}</span>
               <span className="day-markers" aria-hidden="true">{markers.slice(0, 2).map((item, i) => <span className={`day-marker ${item.color}`} key={i}><i /><span>{item.title}</span></span>)}
                 {markers.length > 2 && <small>+{markers.length - 2}</small>}
               </span>
@@ -161,17 +171,21 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
           })}
         </div>
         <div className="calendar-footer">
-          <span><i className="legend-dot rapat" /> Rapat</span><span><i className="legend-dot kegiatan" /> Kegiatan</span><span><i className="legend-dot tenggat" /> Tenggat</span><span><i className="legend-dot red" /> Libur nasional</span><span><i className="legend-dot orange" /> Cuti bersama</span><span><i className="legend-dot violet" /> Peringatan</span>
+          <div className="calendar-legend">
+            <span><i className="legend-dot priority-optional" /> Opsional</span><span><i className="legend-dot priority-important" /> Important</span>
+            <span><i className="legend-dot red" /> Libur nasional</span><span><i className="legend-dot orange" /> Cuti bersama</span><span><i className="legend-dot violet" /> Peringatan</span>
+          </div>
+          <a className="button calendar-list-link" href={spaceHref('/agenda', space.id)}><List size={16} aria-hidden="true" /> Semua agenda</a>
         </div>
       </section>
       <aside className="dashboard-aside" aria-label="Ringkasan tim">
-        <ActivitySummary events={events} month={monthKey} selectDay={selectDay} today={today} space={space.id} />
+        <ActivitySummary events={events} month={monthKey} selectDay={selectDay} today={today} />
         {space.kind === 'team' && <Members members={members} user={user} />}
       </aside>
     </div>
     <footer className="page-footer"><CalendarPlus size={16} /> Planer <span>·</span> <Flag size={14} /> <a href="https://www.setneg.go.id/baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_2026">SKB 2026</a><span>·</span><a href="https://setneg.go.id/baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_2027">SKB 2027</a><span>·</span><a href="https://www.un.org/en/observances/list-days-weeks">Hari internasional PBB</a></footer>
     {agenda && <AgendaDialog date={agenda.date} startAdding={agenda.startAdding} close={closeAgenda}
-      notes={holidays(agenda.date)} events={grouped.get(agenda.date) || []} pending={pending}
+      holidays={holidays(agenda.date)} events={grouped.get(agenda.date) || []} pending={pending}
       error={error} onToggle={toggleEvent} onSave={saveEvent} />}
   </main>;
 }

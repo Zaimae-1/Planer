@@ -15,13 +15,16 @@ type event struct {
 	Date     string `json:"date"`
 	Time     string `json:"time"`
 	Title    string `json:"title"`
-	Category string `json:"category"`
+	Notes    string `json:"notes"`
+	Priority string `json:"priority"`
 	Done     bool   `json:"done"`
 }
 
 func scanEvent(row scanner, e *event) error {
-	return row.Scan(&e.ID, &e.Date, &e.Time, &e.Title, &e.Category, &e.Done)
+	return row.Scan(&e.ID, &e.Date, &e.Time, &e.Title, &e.Notes, &e.Priority, &e.Done)
 }
+
+const eventColumns = "id, date, time, title, notes, priority, done"
 
 var timePattern = regexp.MustCompile(`^(?:[01]\d|2[0-3]):[0-5]\d$`)
 
@@ -37,22 +40,26 @@ func (e *event) validate() error {
 	if n := utf8.RuneCountInString(e.Title); n < 1 || n > 100 {
 		return invalid("Nama kegiatan harus berisi 1–100 karakter.")
 	}
-	switch e.Category {
-	case "rapat", "kegiatan", "tenggat":
+	e.Notes = strings.TrimSpace(e.Notes)
+	if utf8.RuneCountInString(e.Notes) > 1000 || strings.ContainsRune(e.Notes, 0) {
+		return invalid("Notes harus berupa teks dengan maksimal 1.000 karakter.")
+	}
+	switch e.Priority {
+	case "none", "optional", "important":
 		return nil
 	default:
-		return invalid("Pilih kategori kegiatan.")
+		return invalid("Pilih keterangan kegiatan yang valid.")
 	}
 }
 
 func insertEvent(db executor, team string, e event) error {
-	_, err := db.Exec("INSERT INTO events (id, team, date, time, title, category, done) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-		e.ID, team, e.Date, e.Time, e.Title, e.Category, e.Done)
+	_, err := db.Exec("INSERT INTO events (team, "+eventColumns+") VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+		team, e.ID, e.Date, e.Time, e.Title, e.Notes, e.Priority, e.Done)
 	return err
 }
 
 func (a *app) addEvent(w http.ResponseWriter, r *http.Request, user *account) error {
-	var e event
+	e := event{Priority: "none"}
 	if err := readJSON(w, r, &e, 16<<10); err != nil {
 		return err
 	}
@@ -68,8 +75,8 @@ func (a *app) addEvent(w http.ResponseWriter, r *http.Request, user *account) er
 
 func (a *app) updateEvent(w http.ResponseWriter, r *http.Request, user *account) error {
 	var patch struct {
-		Date, Time, Title, Category *string
-		Done                        *bool
+		Date, Time, Title, Notes, Priority *string
+		Done                               *bool
 	}
 	if err := readJSON(w, r, &patch, 16<<10); err != nil {
 		return err
@@ -80,7 +87,7 @@ func (a *app) updateEvent(w http.ResponseWriter, r *http.Request, user *account)
 	}
 	defer tx.Rollback()
 	var e event
-	err = scanEvent(tx.QueryRow("SELECT id, date, time, title, category, done FROM events WHERE id = $1 AND team = $2 FOR UPDATE",
+	err = scanEvent(tx.QueryRow("SELECT "+eventColumns+" FROM events WHERE id = $1 AND team = $2 FOR UPDATE",
 		r.PathValue("id"), user.team), &e)
 	if errors.Is(err, sql.ErrNoRows) {
 		return fail(404, "Kegiatan tidak ditemukan.")
@@ -97,8 +104,11 @@ func (a *app) updateEvent(w http.ResponseWriter, r *http.Request, user *account)
 	if patch.Title != nil {
 		e.Title = *patch.Title
 	}
-	if patch.Category != nil {
-		e.Category = *patch.Category
+	if patch.Notes != nil {
+		e.Notes = *patch.Notes
+	}
+	if patch.Priority != nil {
+		e.Priority = *patch.Priority
 	}
 	if patch.Done != nil {
 		e.Done = *patch.Done
@@ -106,8 +116,8 @@ func (a *app) updateEvent(w http.ResponseWriter, r *http.Request, user *account)
 	if err := e.validate(); err != nil {
 		return err
 	}
-	if _, err := tx.Exec("UPDATE events SET date = $1, time = $2, title = $3, category = $4, done = $5 WHERE id = $6",
-		e.Date, e.Time, e.Title, e.Category, e.Done, e.ID); err != nil {
+	if _, err := tx.Exec("UPDATE events SET date = $1, time = $2, title = $3, notes = $4, priority = $5, done = $6 WHERE id = $7",
+		e.Date, e.Time, e.Title, e.Notes, e.Priority, e.Done, e.ID); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {
@@ -158,7 +168,7 @@ func (a *app) workspace(w http.ResponseWriter, _ *http.Request, user *account) e
 	if err := memberRows.Err(); err != nil {
 		return err
 	}
-	rows, err := a.db.Query("SELECT id, date, time, title, category, done FROM events WHERE team = $1 ORDER BY date, time = '', time, id", user.team)
+	rows, err := a.db.Query("SELECT "+eventColumns+" FROM events WHERE team = $1 ORDER BY date, time = '', time, id", user.team)
 	if err != nil {
 		return err
 	}

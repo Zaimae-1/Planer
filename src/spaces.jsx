@@ -25,7 +25,7 @@ export function SpacePicker({ spaces, current, switching, onSwitch, onCreate }) 
   </div>;
 }
 
-export function NewTeamForm({ close }) {
+export function NewTeamForm({ close, onCreated }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   async function submit(event) {
@@ -34,7 +34,7 @@ export function NewTeamForm({ close }) {
     setError('');
     try {
       const team = await api('/spaces', 'POST', Object.fromEntries(new FormData(event.currentTarget)));
-      location.assign(spaceHref('/dashboard', team.id));
+      onCreated(team);
     } catch (error) { setError(error.message); setBusy(false); }
   }
   return <Modal title="Buat tim baru" close={close}>{(dismiss) => (

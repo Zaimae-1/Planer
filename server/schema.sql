@@ -21,8 +21,13 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE TABLE IF NOT EXISTS events (
   id TEXT PRIMARY KEY, team TEXT NOT NULL REFERENCES spaces(id), date TEXT NOT NULL, time TEXT NOT NULL,
-  title TEXT NOT NULL, category TEXT NOT NULL, done BOOLEAN NOT NULL DEFAULT FALSE
+  title TEXT NOT NULL, category TEXT NOT NULL DEFAULT 'kegiatan', done BOOLEAN NOT NULL DEFAULT FALSE,
+  notes TEXT NOT NULL DEFAULT '',
+  priority TEXT NOT NULL DEFAULT 'none' CHECK (priority IN ('none', 'optional', 'important'))
 );
+ALTER TABLE events ALTER COLUMN category SET DEFAULT 'kegiatan';
+ALTER TABLE events ADD COLUMN IF NOT EXISTS notes TEXT NOT NULL DEFAULT '';
+ALTER TABLE events ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'none' CHECK (priority IN ('none', 'optional', 'important'));
 CREATE INDEX IF NOT EXISTS events_by_team ON events(team, date, time);
 CREATE TABLE IF NOT EXISTS invites (
   id TEXT PRIMARY KEY, team TEXT NOT NULL REFERENCES spaces(id), invited_by TEXT NOT NULL REFERENCES accounts(id),

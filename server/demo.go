@@ -47,17 +47,18 @@ func (a *app) demo(w http.ResponseWriter, _ *http.Request, user *account) error 
 	remaining := time.Date(today.Year(), today.Month()+1, 0, 0, 0, 0, 0, today.Location()).Day() - today.Day()
 	agenda := []struct {
 		offset                int
-		time, title, category string
+		time, title, priority string
 		done                  bool
 	}{
-		{-17, "13:30", "Susun konsep acara", "kegiatan", true}, {-13, "19:00", "Rapat koordinasi", "rapat", true},
-		{-8, "10:00", "Daftar kebutuhan tim", "tenggat", true}, {-5, "16:00", "Survei lokasi", "kegiatan", true},
-		{0, "09:00", "Briefing tim", "rapat", false}, {0, "15:30", "Review konsep", "kegiatan", false},
-		{min(2, remaining), "12:00", "Finalisasi rundown", "tenggat", false},
-		{min(4, remaining), "14:00", "Gladi bersih", "kegiatan", false}, {7, "10:00", "Evaluasi persiapan", "rapat", false},
+		{-17, "13:30", "Susun konsep acara", "none", true}, {-13, "19:00", "Rapat koordinasi", "none", true},
+		{-8, "10:00", "Daftar kebutuhan tim", "important", true}, {-5, "16:00", "Survei lokasi", "optional", true},
+		{0, "09:00", "Briefing tim", "important", false}, {0, "15:30", "Review konsep", "optional", false},
+		{min(2, remaining), "12:00", "Finalisasi rundown", "important", false},
+		{min(4, remaining), "14:00", "Gladi bersih", "optional", false}, {7, "10:00", "Evaluasi persiapan", "none", false},
 	}
 	for _, item := range agenda {
-		e := event{randomToken(), today.AddDate(0, 0, item.offset).Format(time.DateOnly), item.time, item.title, item.category, item.done}
+		e := event{ID: randomToken(), Date: today.AddDate(0, 0, item.offset).Format(time.DateOnly),
+			Time: item.time, Title: item.title, Priority: item.priority, Done: item.done}
 		if err := insertEvent(tx, team.ID, e); err != nil {
 			return err
 		}

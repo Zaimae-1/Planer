@@ -1,19 +1,27 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { CalendarDays, Clock3, Flag, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { categories, formatDate, fromKey } from '../shared/dates.js';
+import { formatDate, fromKey } from '../shared/dates.js';
+import { EventFields, priorities } from './event-fields.jsx';
 import { animateOut, Dialog, Feedback, IconButton } from './ui.jsx';
 
-function DayDetails({ notes, events, pending, onAdd, onEdit, onToggle, onRemove, error, editorOpen, addButton }) {
+function DayDetails({ holidays, events, pending, onAdd, onEdit, onToggle, onRemove, error, editorOpen, addButton }) {
   return <>
     <Feedback error={error} />
-    {notes.length > 0 && <ul className="holiday-list">{notes.map(([name, kind, color]) => <li className={color} key={name}>
+    {holidays.length > 0 && <ul className="holiday-list">{holidays.map(([name, kind, color]) => <li className={color} key={name}>
       <Flag size={15} /><span><strong>{name}</strong><small>{kind}</small></span>
     </li>)}</ul>}
     {events.length ? <ul className="day-events">{events.map((event) => {
       const done = pending[event.id] ?? event.done;
       return <li key={event.id} className={done ? 'event-done' : ''}>
         <input type="checkbox" checked={done} disabled={Object.hasOwn(pending, event.id)} onChange={() => onToggle(event)} aria-label={`Tandai ${event.title} ${done ? 'belum selesai' : 'selesai'}`} />
-        <div><strong>{event.title}</strong><small>{event.time && <><Clock3 size={12} /> {event.time} WIB <b>·</b> </>}{categories[event.category]}</small></div>
+        <div>
+          <strong>{event.title}</strong>
+          <small className="event-meta">
+            {event.time && <Clock3 size={12} aria-hidden="true" />}{event.time ? `${event.time} WIB` : 'Tanpa jam'}
+            {event.priority && event.priority !== 'none' && <span className={`agenda-priority priority-${event.priority}`}>{priorities[event.priority]}</span>}
+          </small>
+          {event.notes && <p className="event-notes">{event.notes}</p>}
+        </div>
         <IconButton label={`Edit ${event.title}`} disabled={editorOpen} onClick={(click) => onEdit(event, click.currentTarget)}><Pencil size={15} /></IconButton>
         <IconButton label={`Hapus ${event.title}`} disabled={editorOpen} onClick={(click) => onRemove(event, click.currentTarget)}><Trash2 size={15} /></IconButton>
       </li>;
@@ -38,16 +46,7 @@ function EventEditor({ event, panel, close, onSave }) {
   return <section className="agenda-editor" ref={panel} aria-labelledby={titleId}>
     <div className="modal-heading"><h3 id={titleId}>{title}</h3></div>
     <form className="form" onSubmit={submit}>
-      {event.remove ? <p className="muted">Kegiatan “{event.title}” akan dihapus dari kalender.</p> : <>
-        <label>Nama kegiatan<input name="title" defaultValue={event.title} maxLength={100} placeholder="Contoh: Briefing tim" required data-editor-focus /></label>
-        <div className="form-row">
-          <label>Tanggal<input type="date" name="date" defaultValue={event.date} required /></label>
-          <label><span className="editor-time-label">Jam <small>(opsional, WIB)</small></span><input type="time" name="time" defaultValue={event.time} /></label>
-        </div>
-        <label>Kategori<select name="category" defaultValue={event.category || 'kegiatan'}>
-          {Object.entries(categories).map(([key, label]) => <option value={key} key={key}>{label}</option>)}
-        </select></label>
-      </>}
+      {event.remove ? <p className="muted">Kegiatan “{event.title}” akan dihapus dari kalender.</p> : <EventFields event={event} />}
       <Feedback error={error} />
       <div className="modal-actions"><button type="button" className="button button-secondary" onClick={close} disabled={busy} data-editor-focus={event.remove ? '' : undefined}>Batal</button>
         <button className={`button ${event.remove ? 'button-danger' : 'button-primary'}`} disabled={busy}>{busy ? 'Memproses…' : event.remove ? 'Hapus kegiatan' : 'Simpan kegiatan'}</button></div>
