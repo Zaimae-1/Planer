@@ -4,19 +4,19 @@ import { api, Feedback, IconButton, Modal, spaceHref } from './ui.jsx';
 
 export function SpacePicker({ spaces, current, page, onCreate }) {
   const index = spaces.findIndex(({ id }) => id === current.id);
-  const move = (offset) => select(spaces[(index + offset + spaces.length) % spaces.length]?.id);
-  const select = (id) => { if (id && id !== current.id) location.assign(spaceHref(page, id)); };
+  function move(offset) {
+    const next = spaces[(index + offset + spaces.length) % spaces.length];
+    if (next && next.id !== current.id) location.assign(spaceHref(page, next.id));
+  }
   return <div className="space-strip">
     <div className="space-identity">
       <span className="section-icon section-icon-blue">{current.kind === 'personal' ? <CalendarDays size={18} /> : <UsersRound size={18} />}</span>
       <div><span className="space-label">RUANG AKTIF</span><strong>{current.name}</strong></div>
     </div>
     <div className="space-actions">
-      <div className="space-switcher">
+      <div className="space-switcher" role="group" aria-label="Ganti ruang">
         <IconButton label="Ruang sebelumnya" disabled={spaces.length < 2} onClick={() => move(-1)}><ChevronLeft size={18} /></IconButton>
-        <select aria-label="Pilih ruang kalender atau tim" value={current.id} onChange={(event) => select(event.target.value)}>
-          {spaces.map((space) => <option value={space.id} key={space.id}>{space.name}</option>)}
-        </select>
+        <span className="space-switcher-name" title={current.name}>{current.name}</span>
         <IconButton label="Ruang berikutnya" disabled={spaces.length < 2} onClick={() => move(1)}><ChevronRight size={18} /></IconButton>
       </div>
       <button className="button button-secondary create-team" onClick={onCreate}><Plus size={17} /> Buat tim</button>

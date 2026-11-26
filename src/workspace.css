@@ -22,7 +22,7 @@
 .space-actions { min-width: 0; }
 .space-switcher { gap: 3px; border: 1px solid var(--line); padding: 2px; border-radius: 8px; background: white; min-width: 0; }
 .space-switcher .icon-button { width: 30px; height: 30px; }
-.space-switcher select { min-width: 0; max-width: 180px; text-overflow: ellipsis; color: var(--ink); border: 0; border-radius: 5px; background: white; font-size: .81rem; padding: 5px 2px; font-weight: 750; }
+.space-switcher-name { min-width: 0; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .81rem; padding-inline: 3px; font-weight: 750; text-align: center; }
 .create-team { white-space: nowrap; min-height: 36px; }
 .empty-feature { display: grid; justify-items: start; max-width: 650px; padding: clamp(17px, 4vw, 32px); gap: 10px; }
 .empty-feature h1, .empty-feature h2 { letter-spacing: var(--heading-tracking); }
@@ -92,7 +92,7 @@
   .space-label { font-size: .52rem; }
   .space-actions { gap: 4px; }
   .space-switcher .icon-button { height: 27px; width: 23px; }
-  .space-switcher select { max-width: clamp(65px, 22vw, 125px); font-size: .73rem; }
+  .space-switcher-name { max-width: clamp(65px, 22vw, 125px); font-size: .73rem; }
   .create-team { font-size: .71rem; padding-inline: 5px; gap: 3px; }
   .create-team svg { width: 13px; }
   .notification { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 7px; padding: 12px; }

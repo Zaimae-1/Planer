@@ -14,7 +14,7 @@
 .profile-menu summary:hover { background: var(--blue-soft); }
 .brand:hover .brand-icon { background: var(--blue-dark); }
 .text-button:hover, .page-footer a:hover, .demo-account-link:hover { color: var(--blue); }
-.form :is(input, select):hover, .chat-composer textarea:hover, .space-switcher select:hover { border-color: #9daafb; }
+.form :is(input, select):hover, .chat-composer textarea:hover { border-color: #9daafb; }
 .channel-field label:hover { border-color: #a6b0f4; }
 
 @media (hover: hover) and (pointer: fine) {
