@@ -9,20 +9,21 @@
 .app-sidebar .profile-menu { flex: 1; }
 .profile-menu summary > span:nth-child(2) { flex: 1; }
 .app-sidebar .account-menu { top: auto; bottom: calc(100% + 9px); right: 0; }
-.workspace-content { min-width: 0; }
+.workspace-content { min-width: 0; overflow-x: clip; }
 .space-bar-wrap { max-width: calc(var(--page-width) + 64px); margin-inline: auto; padding: 18px 32px 0; }
-.space-bar-wrap + .page { padding-top: 15px; }
+.space-bar-wrap + .workspace-route > .page { padding-top: 15px; }
 .space-strip { display: flex; gap: 12px; justify-content: space-between; align-items: center; min-width: 0; }
 .space-identity { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .space-identity .section-icon { width: 36px; height: 36px; }
 .space-identity > div { display: grid; min-width: 0; gap: 1px; }
 .space-label { color: var(--muted); font-size: .58rem; letter-spacing: .105em; font-weight: 850; }
-.space-identity strong { font: 700 1rem/1.2 var(--display); overflow-wrap: anywhere; }
+.space-identity strong { font: 700 1rem/1.2 var(--display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .space-actions, .space-switcher { display: flex; align-items: center; gap: 6px; }
 .space-actions { min-width: 0; }
-.space-switcher { gap: 3px; border: 1px solid var(--line); padding: 2px; border-radius: 8px; background: white; min-width: 0; }
+.space-switcher { position: relative; gap: 3px; border: 1px solid var(--line); padding: 2px; border-radius: 8px; background: white; min-width: 0; }
 .space-switcher .icon-button { width: 30px; height: 30px; }
-.space-switcher-name { min-width: 0; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .81rem; padding-inline: 3px; font-weight: 750; text-align: center; }
+.space-switcher .icon-button[aria-disabled="true"]:not(:disabled) { cursor: wait; }
+.space-switcher-name { min-width: 0; width: 116px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .81rem; padding-inline: 3px; font-weight: 750; text-align: center; }
 .create-team { white-space: nowrap; min-height: 36px; }
 .empty-feature { display: grid; justify-items: start; max-width: 650px; padding: clamp(17px, 4vw, 32px); gap: 10px; }
 .empty-feature h1, .empty-feature h2 { letter-spacing: var(--heading-tracking); }
@@ -84,7 +85,7 @@
   .app-sidebar { padding-inline: 13px; }
   .app-sidebar .brand { font-size: 27px; }
   .space-bar-wrap { padding: 11px 13px 0; }
-  .space-bar-wrap + .page { padding-top: 11px; }
+  .space-bar-wrap + .workspace-route > .page { padding-top: 11px; }
   .space-strip { gap: 6px; }
   .space-identity { gap: 5px; }
   .space-identity .section-icon { display: none; }
@@ -92,7 +93,7 @@
   .space-label { font-size: .52rem; }
   .space-actions { gap: 4px; }
   .space-switcher .icon-button { height: 27px; width: 23px; }
-  .space-switcher-name { max-width: clamp(65px, 22vw, 125px); font-size: .73rem; }
+  .space-switcher-name { width: clamp(65px, 22vw, 116px); font-size: .73rem; }
   .create-team { font-size: .71rem; padding-inline: 5px; gap: 3px; }
   .create-team svg { width: 13px; }
   .notification { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 7px; padding: 12px; }

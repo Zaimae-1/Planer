@@ -96,7 +96,7 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
     setError('');
     setPending((current) => ({ ...current, [event.id]: done }));
     try {
-      await api(`/events/${event.id}`, 'PATCH', { done });
+      await api(`/events/${event.id}`, 'PATCH', { done }, { space: space.id });
       await refresh();
     } catch (error) {
       setError(error.message);
@@ -111,9 +111,9 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
 
   async function saveEvent(form, fields) {
     if (form.remove) {
-      await api(`/events/${form.id}`, 'DELETE');
+      await api(`/events/${form.id}`, 'DELETE', undefined, { space: space.id });
     } else {
-      await api(form.id ? `/events/${form.id}` : '/events', form.id ? 'PATCH' : 'POST', fields);
+      await api(form.id ? `/events/${form.id}` : '/events', form.id ? 'PATCH' : 'POST', fields, { space: space.id });
       setAgenda((current) => current && { ...current, date: fields.date });
       setMonth(fromKey(fields.date.slice(0, 7) + '-01'));
     }

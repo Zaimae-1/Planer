@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, Bell, CalendarDays, ChevronDown, FlaskConical, LogIn, LogOut, MessageSquare, UserRoundPlus } from 'lucide-react';
 import '@fontsource-variable/dm-sans';
@@ -10,7 +10,8 @@ import { Dashboard } from './dashboard.jsx';
 import { InvitePage } from './invite.jsx';
 import { Notifications } from './notifications.jsx';
 import { ChooseTeam, NewTeamForm, SpacePicker } from './spaces.jsx';
-import { api, Avatar, Brand, Feedback, selectedSpace, spaceHref } from './ui.jsx';
+import { api, Avatar, Brand, Feedback, spaceHref } from './ui.jsx';
+import { useWorkspace } from './use-workspace.js';
 import './styles.css';
 import './secondary.css';
 import './workspace.css';
@@ -64,52 +65,15 @@ function Navigation({ user, space, pending }) {
 }
 
 function WorkspaceApp() {
-  const [user, setUser] = useState(null);
-  const [data, setData] = useState(null);
-  const [error, setError] = useState('');
+  const content = useRef(null);
+  const { user, data, error, refresh, switching, switchError, switchSpace } = useWorkspace(pathname, activePage, content);
   const [newTeam, setNewTeam] = useState(false);
-  const generation = useRef(0);
-  const userLoaded = useRef(false);
-
-  const refresh = useCallback(async () => {
-    const current = ++generation.current;
-    try {
-      const [workspace, spaces, notifications] = await Promise.all([api('/workspace'), api('/spaces'), api('/notifications')]);
-      if (current === generation.current) { setData({ workspace, spaces, notifications }); setError(''); }
-    } catch (error) {
-      if (error.status === 401) location.replace('/login');
-      else if (error.status === 403 && selectedSpace) location.replace(activePage);
-      else if (current === generation.current) setError(error.message === 'Failed to fetch' ? 'Koneksi ke Planer terputus.' : error.message);
-    }
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    async function open() {
-      try {
-        let profile = await api('/session');
-        if (!profile && pathname === '/') profile = await api('/demo', 'POST');
-        if (!mounted) return;
-        if (!profile) { location.replace('/login'); return; }
-        userLoaded.current = true;
-        setUser(profile);
-        await refresh();
-      } catch (error) {
-        if (mounted) setError(error.message === 'Failed to fetch' ? 'Koneksi ke Planer terputus.' : error.message);
-      }
-    }
-    open();
-    const interval = setInterval(() => { if (!document.hidden && userLoaded.current) refresh(); }, 3200);
-    const onVisible = () => { if (!document.hidden && userLoaded.current) refresh(); };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => { mounted = false; clearInterval(interval); document.removeEventListener('visibilitychange', onVisible); };
-  }, [refresh]);
 
   if (!user || !data) return <main className="loading-page"><Brand />
     {error ? <><Feedback error={error} /><button className="button button-primary" onClick={() => location.reload()}>Coba lagi</button></> : <p role="status">Membuka Planer…</p>}
   </main>;
 
-  const { workspace, spaces, notifications } = data;
+  const { workspace, spaces, notifications, initialMessages } = data;
   const { space, members } = workspace;
   const pending = notifications.filter(({ status }) => status === 'pending').length;
   const onCreate = () => setNewTeam(true);
@@ -118,13 +82,20 @@ function WorkspaceApp() {
     <a className="skip-link" href="#main-content">Lewati ke konten</a>
     <Navigation user={user} space={space} pending={pending} />
     <div id="main-content" className="workspace-content" tabIndex={-1}>
-      {activePage !== '/notifications' && <div className="space-bar-wrap"><SpacePicker spaces={spaces} current={space} page={activePage} onCreate={onCreate} /></div>}
-      {activePage === '/notifications' ? <Notifications items={notifications} refresh={refresh} error={error} />
-        : teamPage && space.kind === 'personal' ? <main className="page inner-page"><ChooseTeam page={activePage} spaces={spaces} onCreate={onCreate} /></main>
-          : activePage === '/messages' ? <Chat user={user} members={members} space={space} />
-            : activePage === '/invite' ? <InvitePage user={user} members={members} space={space} />
-              : activePage === '/agenda' ? <AllAgenda workspace={workspace} error={error} />
-                : <Dashboard user={user} workspace={workspace} refresh={refresh} networkError={error} />}
+      {activePage !== '/notifications' && <div className="space-bar-wrap">
+        <SpacePicker spaces={spaces} current={space} switching={switching} onSwitch={switchSpace} onCreate={onCreate} />
+        <Feedback error={switchError} />
+      </div>}
+      <div className="workspace-route" ref={content} inert={switching}>
+        <React.Fragment key={space.id}>
+          {activePage === '/notifications' ? <Notifications items={notifications} refresh={refresh} error={error} />
+            : teamPage && space.kind === 'personal' ? <main className="page inner-page"><ChooseTeam page={activePage} spaces={spaces} onCreate={onCreate} /></main>
+              : activePage === '/messages' ? <Chat user={user} members={members} space={space} initialMessages={initialMessages} />
+                : activePage === '/invite' ? <InvitePage user={user} members={members} space={space} />
+                  : activePage === '/agenda' ? <AllAgenda workspace={workspace} error={error} />
+                    : <Dashboard user={user} workspace={workspace} refresh={refresh} networkError={error} />}
+        </React.Fragment>
+      </div>
     </div>
     {newTeam && <NewTeamForm close={() => setNewTeam(false)} />}
   </div>;

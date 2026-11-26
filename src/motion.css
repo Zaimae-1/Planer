@@ -2,6 +2,8 @@
   --motion-hover: 140ms;
   --motion-panel: 260ms;
   --motion-exit: 185ms;
+  --motion-room-in: 220ms;
+  --motion-room-out: 105ms;
   --motion-ease: cubic-bezier(.22, 1, .36, 1);
 }
 
@@ -38,6 +40,11 @@ body:has(.animated-dialog[open]) { overflow: hidden; }
   position: absolute; inset: 0; content: ''; background: linear-gradient(90deg, transparent, #ffffff96, transparent);
   animation: shimmer 1.25s linear infinite;
 }
+.space-switcher[aria-busy="true"]::after {
+  position: absolute; inset: auto 12% 0; height: 2px; border-radius: 2px; content: '';
+  background: var(--blue); opacity: 0; pointer-events: none;
+  animation: room-wait 700ms var(--motion-ease) 160ms infinite alternate both;
+}
 
 @keyframes dialog-enter { from { opacity: 0; transform: translateY(12px) scale(.975); } }
 @keyframes dialog-exit { to { opacity: 0; transform: translateY(7px) scale(.985); } }
@@ -46,8 +53,10 @@ body:has(.animated-dialog[open]) { overflow: hidden; }
 @keyframes editor-enter { from { opacity: 0; transform: translate(var(--editor-axis)); } }
 @keyframes editor-exit { to { opacity: 0; transform: translate(var(--editor-axis)); } }
 @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@keyframes room-wait { from { opacity: .35; transform: scaleX(.35); } to { opacity: .75; transform: scaleX(.75); } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition-duration: 0s !important; }
   :is(.day, .button, .icon-button, .agenda-list-card):hover, :is(.agenda-event, .summary-all, .agenda-list-card):hover > svg { transform: none; }
+  .space-switcher[aria-busy="true"]::after { opacity: .6; transform: scaleX(.35); }
 }

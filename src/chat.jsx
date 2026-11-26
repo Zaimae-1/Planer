@@ -24,9 +24,9 @@ function encodeFile(file) {
   });
 }
 
-export function Chat({ user, members, space }) {
-  const [messages, setMessages] = useState([]);
-  const [loaded, setLoaded] = useState(false);
+export function Chat({ user, members, space, initialMessages = null }) {
+  const [messages, setMessages] = useState(() => initialMessages ?? []);
+  const [loaded, setLoaded] = useState(initialMessages !== null);
   const [loadError, setLoadError] = useState('');
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [text, setText] = useState('');
@@ -78,7 +78,7 @@ export function Chat({ user, members, space }) {
       fetching = true;
       const current = revision.current;
       try {
-        const result = await api('/messages');
+        const result = await api('/messages', 'GET', undefined, { space: space.id });
         if (mounted && current === revision.current) {
           setMessages(result.messages);
           setLoaded(true);
@@ -91,7 +91,7 @@ export function Chat({ user, members, space }) {
     const timer = setInterval(read, 2300);
     document.addEventListener('visibilitychange', read);
     return () => { mounted = false; clearInterval(timer); document.removeEventListener('visibilitychange', read); };
-  }, [loadAttempt]);
+  }, [loadAttempt, space.id]);
 
   useEffect(() => {
     if (nearBottom.current && thread.current) thread.current.scrollTop = thread.current.scrollHeight;
@@ -114,7 +114,7 @@ export function Chat({ user, members, space }) {
     setError('');
     try {
       const attachment = file && await encodeFile(file);
-      const result = await api('/messages', 'POST', { text, reply: reply?.id, attachment });
+      const result = await api('/messages', 'POST', { text, reply: reply?.id, attachment }, { space: space.id });
       revision.current++;
       nearBottom.current = true;
       setMessages(result.messages);
@@ -132,7 +132,7 @@ export function Chat({ user, members, space }) {
   async function togglePin(message) {
     setError('');
     try {
-      const result = await api(`/messages/${message.id}/pin`, 'PATCH', { pinned: !message.pinned });
+      const result = await api(`/messages/${message.id}/pin`, 'PATCH', { pinned: !message.pinned }, { space: space.id });
       revision.current++;
       setMessages(result.messages);
     } catch (error) { setError(error.message); }

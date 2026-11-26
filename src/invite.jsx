@@ -20,13 +20,13 @@ export function InvitePage({ user, members, space }) {
     setBusy(true);
     try {
       if (request) {
-        const verified = await api(`/invites/${request.id}/verify`, 'POST', fields);
+        const verified = await api(`/invites/${request.id}/verify`, 'POST', fields, { space: space.id });
         setResult(verified);
       } else if (mode === 'account') {
-        await api('/invites', 'POST', fields);
+        await api('/invites', 'POST', fields, { space: space.id });
         setResult({ pending: true, identifier: fields.identifier });
       } else {
-        const invite = await api('/invites', 'POST', { ...fields, channel });
+        const invite = await api('/invites', 'POST', { ...fields, channel }, { space: space.id });
         setRequest({ ...invite, destination: channel === 'whatsapp' ? fields.phone : fields.email });
       }
     } catch (error) { setError(error.message); }

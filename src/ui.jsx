@@ -1,16 +1,17 @@
 import { CalendarCheck2, X } from 'lucide-react';
 import { useId, useLayoutEffect, useRef } from 'react';
 
-export const selectedSpace = new URLSearchParams(location.search).get('space');
+export const spaceFromUrl = () => new URLSearchParams(location.search).get('space');
 export const spaceHref = (path, id) => id ? `${path}?space=${encodeURIComponent(id)}` : path;
 
-export async function api(path, method = 'GET', body) {
+export async function api(path, method = 'GET', body, { space, signal } = {}) {
   const headers = {};
   if (body) headers['Content-Type'] = 'application/json';
-  if (selectedSpace) headers['X-Planer-Workspace'] = selectedSpace;
+  if (space) headers['X-Planer-Workspace'] = space;
   const response = await fetch(`/api${path}`, {
     method,
     headers,
+    signal,
     body: body ? JSON.stringify(body) : undefined,
   });
   if (response.status === 204) return;
