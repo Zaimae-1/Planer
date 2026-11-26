@@ -80,6 +80,18 @@
 .time-period label:has(:checked) { background: var(--blue-soft); color: var(--blue-dark); }
 .time-period label:has(:focus-visible) { outline: 2px solid var(--blue); }
 .time-hint { font-size: .69rem; color: var(--muted); }
+.event-activities { min-inline-size: 0; margin: 0; padding: 8px 0 0; border: 0; border-top: 1px solid var(--line); }
+.event-activities legend { padding-inline-end: 8px; font-size: .83rem; font-weight: 790; }
+.event-activities legend small { color: var(--muted); font-size: .7rem; }
+.event-activities > .time-hint { display: block; margin-bottom: 6px; }
+.activity-input-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) auto; gap: 6px; align-items: end; padding: 8px; margin-bottom: 6px; background: var(--paper); border-radius: 7px; }
+.activity-input-row > .icon-button { width: 30px; height: 40px; }
+.event-activities .add-activity { min-height: 34px; }
+@media (max-width: 470px) {
+  .activity-input-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .activity-input-row .event-field { grid-area: 2 / 1; }
+  .activity-input-row > .icon-button { grid-area: 1 / 2; }
+}
 .field-with-icon { position: relative; display: block; }
 .form .field-with-icon input { padding-inline-end: 35px; }
 .field-with-icon .icon-button { position: absolute; top: 50%; right: 3px; translate: 0 -50%; }

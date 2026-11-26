@@ -1,5 +1,7 @@
 import { CalendarCheck2, X } from 'lucide-react';
 import { useId, useLayoutEffect, useRef } from 'react';
+import { t } from './i18n.js';
+import { englishErrors } from './api-errors.js';
 
 export const spaceFromUrl = () => new URLSearchParams(location.search).get('space');
 export const spaceHref = (path, id) => id ? `${path}?space=${encodeURIComponent(id)}` : path;
@@ -15,9 +17,9 @@ export async function api(path, method = 'GET', body, { space, signal } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
   if (response.status === 204) return;
-  if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Server Planer belum dapat dihubungi.');
+  if (!response.headers.get('content-type')?.includes('application/json')) throw new Error(t('Server Planer belum dapat dihubungi.', 'The Planer server is unavailable.'));
   const result = await response.json();
-  if (!response.ok) throw Object.assign(new Error(result.error), { status: response.status });
+  if (!response.ok) throw Object.assign(new Error(t(result.error, englishErrors[result.error] || result.error)), { status: response.status });
   return result;
 }
 
@@ -25,10 +27,18 @@ export function Brand({ space } = {}) {
   return <a className="brand" href={spaceHref('/dashboard', space)} aria-label="Planer, dashboard"><span className="brand-icon"><CalendarCheck2 size={22} /></span> planer<span className="brand-dot">.</span></a>;
 }
 
-export function Avatar({ name, online, className = '' }) {
+export function avatarUrl(user) {
+  return user.avatarRevision ? `/api/avatars/${encodeURIComponent(user.id)}?v=${user.avatarRevision}` : '';
+}
+
+export function spaceName(space) {
+  return space.kind === 'personal' ? t('Kalender pribadi', 'Personal calendar') : space.name;
+}
+
+export function Avatar({ name, online, src, className = '' }) {
   const index = [...name].reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % 4;
   const letters = name.trim().split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toUpperCase();
-  return <span className={`avatar avatar-${index} ${className}`} aria-hidden="true">{letters}{online && <i />}</span>;
+  return <span className={`avatar avatar-${index} ${className}`} aria-hidden="true">{src ? <img src={src} alt="" /> : letters}{online && <i />}</span>;
 }
 
 export function IconButton({ label, children, className = '', ...props }) {
@@ -66,7 +76,7 @@ export function Modal({ children, title, close }) {
   const titleId = useId();
   return <Dialog titleId={titleId} className="modal" close={close}>{(dismiss) => (
     <div className="modal-content" data-dialog-panel>
-      <div className="modal-heading"><h2 id={titleId}>{title}</h2><IconButton label="Tutup" onClick={dismiss}><X size={19} /></IconButton></div>
+      <div className="modal-heading"><h2 id={titleId}>{title}</h2><IconButton label={t('Tutup', 'Close')} onClick={dismiss}><X size={19} /></IconButton></div>
       {children(dismiss)}
     </div>
   )}</Dialog>;
@@ -78,8 +88,8 @@ export function Feedback({ error }) {
 
 export function MemberRow({ member, me }) {
   return <li className="member-row">
-    <Avatar name={member.name} online={member.online} />
-    <div><div className="member-name"><strong>{member.name.split(' ')[0]}{member.id === me ? ' (kamu)' : ''}</strong><span aria-hidden="true">·</span>
+    <Avatar name={member.name} online={member.online} src={avatarUrl(member)} />
+    <div><div className="member-name"><strong>{member.name.split(' ')[0]}{member.id === me ? t(' (kamu)', ' (you)') : ''}</strong><span aria-hidden="true">·</span>
       <span className={member.online ? 'online' : 'offline'}>Status: {member.online ? 'Online' : 'Offline'}</span></div>
       <small>{member.email}</small></div>
   </li>;

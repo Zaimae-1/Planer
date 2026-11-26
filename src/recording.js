@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { t } from './i18n.js';
 
 export function useRecording(onFile, onError) {
   const active = useRef(null);
@@ -32,7 +33,7 @@ export function useRecording(onFile, onError) {
   async function record() {
     if (pending.current || active.current) return;
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-      onError('Rekaman membutuhkan browser yang mendukung mikrofon dan koneksi HTTPS atau localhost.');
+      onError(t("Rekaman membutuhkan browser yang mendukung mikrofon dan koneksi HTTPS atau localhost.", "Recording requires microphone support and an HTTPS or localhost connection."));
       return;
     }
     pending.current = true;
@@ -50,7 +51,7 @@ export function useRecording(onFile, onError) {
       recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
       recorder.onerror = () => {
         session.cancelled = true;
-        if (mounted.current) onError('Rekaman gagal. Coba lagi.');
+        if (mounted.current) onError(t("Rekaman gagal. Coba lagi.", "The recording failed. Try again."));
       };
       recorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop());
@@ -60,7 +61,7 @@ export function useRecording(onFile, onError) {
         if (session.cancelled) return;
         const type = recorder.mimeType || chunks[0]?.type || 'audio/webm';
         const ext = type.includes('mp4') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
-        onFile(new File(chunks, `Pesan suara.${ext}`, { type }));
+        onFile(new File(chunks, `${t('Pesan suara', 'Voice message')}.${ext}`, { type }));
       };
       recorder.start();
       active.current = session;
@@ -68,7 +69,7 @@ export function useRecording(onFile, onError) {
       setStarted(Date.now());
     } catch {
       stream?.getTracks().forEach((track) => track.stop());
-      if (mounted.current) onError('Mikrofon belum bisa diakses. Periksa izin mikrofon di browser.');
+      if (mounted.current) onError(t("Mikrofon belum bisa diakses. Periksa izin mikrofon di browser.", "The microphone is unavailable. Check your browser permissions."));
     } finally {
       pending.current = false;
     }

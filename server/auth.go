@@ -14,20 +14,23 @@ import (
 	"unicode/utf8"
 )
 
-const accountColumns = "a.id, a.name, a.username, a.email, a.demo, a.example, a.seen, a.password"
+const accountColumns = "a.id, a.name, a.username, a.email, a.demo, a.example, a.seen, a.password, a.phone, a.language, a.avatar_revision"
 const cookieName = "planer_session"
 const sessionAge = 30 * 24 * time.Hour
 
 type account struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Demo     bool   `json:"demo"`
-	Online   bool   `json:"online"`
-	team     string
-	space    *space
-	password sql.NullString
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	Username       string `json:"username"`
+	Email          string `json:"email"`
+	Demo           bool   `json:"demo"`
+	Online         bool   `json:"online"`
+	Language       string `json:"language"`
+	AvatarRevision int64  `json:"avatarRevision,omitempty"`
+	team           string
+	space          *space
+	password       sql.NullString
+	phone          string
 }
 
 type scanner interface{ Scan(...any) error }
@@ -37,7 +40,7 @@ func readAccount(row scanner) (*account, error) {
 	var example int
 	var seen int64
 	err := row.Scan(&user.ID, &user.Name, &user.Username, &user.Email,
-		&user.Demo, &example, &seen, &user.password)
+		&user.Demo, &example, &seen, &user.password, &user.phone, &user.Language, &user.AvatarRevision)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -174,11 +177,18 @@ func passwordHash(password, salt string) string {
 
 type credentials struct{ Name, Password, Confirmation string }
 
-func (c *credentials) validate() error {
+func (c *credentials) validateName() error {
 	c.Name = strings.TrimSpace(c.Name)
 	if size := utf8.RuneCountInString(c.Name); size < 2 || size > 70 {
 		return invalid("Nama lengkap harus berisi 2–70 karakter.")
 	}
+	if strings.ContainsRune(c.Name, 0) {
+		return invalid("Nama lengkap tidak valid.")
+	}
+	return nil
+}
+
+func (c *credentials) validatePassword() error {
 	if size := utf8.RuneCountInString(c.Password); size < 8 || size > 128 {
 		return invalid("Kata sandi harus terdiri dari 8–128 karakter.")
 	}
@@ -188,8 +198,15 @@ func (c *credentials) validate() error {
 	return nil
 }
 
+func (c *credentials) validate() error {
+	if err := c.validateName(); err != nil {
+		return err
+	}
+	return c.validatePassword()
+}
+
 func addAccount(tx *sql.Tx, person contact, credentials credentials) (*account, error) {
-	user := &account{ID: randomToken(), Name: credentials.Name, Username: person.Username, Email: person.Email}
+	user := &account{ID: randomToken(), Name: credentials.Name, Username: person.Username, Email: person.Email, Language: "id"}
 	password := passwordHash(credentials.Password, hex.EncodeToString(randBytes(16)))
 	if _, err := tx.Exec("INSERT INTO accounts (id, name, username, email, phone, password) VALUES ($1,$2,$3,$4,$5,$6)",
 		user.ID, user.Name, user.Username, user.Email, person.Phone, password); err != nil {

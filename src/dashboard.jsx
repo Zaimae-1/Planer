@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Clock3, Flag, List, Plus, Sparkles, UsersRound } from 'lucide-react';
-import { dateKey, formatDate, fromKey, utcDate } from '../shared/dates.js';
+import { dateKey, fromKey, utcDate } from '../shared/dates.js';
 import { holidays } from './holidays.js';
 import { api, Feedback, IconButton, MemberRow, spaceHref } from './ui.jsx';
 import { AgendaDialog } from './events.jsx';
 import { priorities } from './event-fields.jsx';
-import { formatEventTime } from './event-time.js';
+import { agendaStart, eventActivities, formatEventTime } from './event-time.js';
+import { formatDate, t } from './i18n.js';
 
-const weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const monthLabel = (date) => formatDate(date, { month: 'long', year: 'numeric' });
 
 function linkedDate() {
@@ -21,10 +21,10 @@ function Hero({ user, space, onAdd }) {
   return <section className="hero">
     <div className="hero-art" aria-hidden="true" />
     <div className="hero-copy">
-      <div className="hero-kicker"><Sparkles size={14} /> {space.kind === 'team' ? 'RUANG PERENCANAAN TIM' : 'RUANG PERENCANAAN PRIBADI'}</div>
-      <h1>Halo, {user.name.split(' ')[0]}<span>!</span></h1>
-      <p>{space.kind === 'team' ? 'Atur agenda tim dan pantau kegiatan dalam satu kalender.' : 'Atur agenda pribadimu dan pantau kegiatan yang akan datang.'}</p>
-      <button className="button button-lime" onClick={onAdd}><Plus size={18} /> Tambah kegiatan</button>
+      <div className="hero-kicker"><Sparkles size={14} /> {space.kind === 'team' ? t('RUANG PERENCANAAN TIM', 'TEAM PLANNING') : t('RUANG PERENCANAAN PRIBADI', 'PERSONAL PLANNING')}</div>
+      <h1>{t('Halo', 'Hello')}, {user.name.split(' ')[0]}<span>!</span></h1>
+      <p>{space.kind === 'team' ? t('Atur agenda tim dan pantau kegiatan dalam satu kalender.', 'Plan and track team activities in one calendar.') : t('Atur agenda pribadimu dan pantau kegiatan yang akan datang.', 'Manage your personal calendar and upcoming activities.')}</p>
+      <button className="button button-lime" onClick={onAdd}><Plus size={18} /> {t('Tambah agenda', 'Add agenda')}</button>
     </div>
   </section>;
 }
@@ -32,34 +32,37 @@ function Hero({ user, space, onAdd }) {
 function ActivitySummary({ events, month, selectDay, today }) {
   const current = events.filter((event) => event.date.startsWith(month));
   const done = current.filter((event) => event.done).length;
-  const upcoming = current.filter((event) => !event.done && event.date >= today);
+  const upcoming = current.filter((event) => !event.done && event.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date) || (agendaStart(a) || '24:00').localeCompare(agendaStart(b) || '24:00'));
   const percentage = current.length ? Math.round(done / current.length * 100) : 0;
   return <section className="panel summary">
-    <div className="section-header"><span className="section-icon section-icon-orange"><Clock3 size={19} /></span><div><h2>Ringkasan agenda</h2><p>{monthLabel(fromKey(month + '-01'))}</p></div></div>
+    <div className="section-header"><span className="section-icon section-icon-orange"><Clock3 size={19} /></span><div><h2>{t('Ringkasan agenda', 'Agenda summary')}</h2><p>{monthLabel(fromKey(month + '-01'))}</p></div></div>
     <div className="summary-progress">
-      <div className="progress-heading"><strong>{done} dari {current.length} selesai</strong><span>{percentage}%</span></div>
-      <progress value={done} max={current.length || 1} aria-label="Kegiatan selesai" />
+      <div className="progress-heading"><strong>{t(`${done} dari ${current.length} selesai`, `${done} of ${current.length} done`)}</strong><span>{percentage}%</span></div>
+      <progress value={done} max={current.length || 1} aria-label={t('Agenda selesai', 'Completed agendas')} />
     </div>
-    <div className="summary-label">AGENDA MENDATANG</div>
+    <div className="summary-label">{t('AGENDA MENDATANG', 'UPCOMING AGENDAS')}</div>
     {upcoming.length ? <ul className="agenda-list">{upcoming.slice(0, 7).map((event) => <li key={event.id}>
       <button className="agenda-event" onClick={() => selectDay(event.date)}>
         <span className={`agenda-date priority-${event.priority || 'none'}`}><strong>{Number(event.date.slice(-2))}</strong><small>{formatDate(fromKey(event.date), { month: 'short' })}</small></span>
-        <span className="agenda-info"><strong>{event.title}</strong><small>{formatEventTime(event.time)}
-          {event.priority && event.priority !== 'none' && ` · ${priorities[event.priority]}`}</small></span>
+        <span className="agenda-info"><strong>{event.title}</strong><small>{formatEventTime(agendaStart(event))}
+          {event.priority && event.priority !== 'none' && ` · ${priorities()[event.priority]}`}</small></span>
         <ChevronRight size={16} aria-hidden="true" />
       </button>
-    </li>)}</ul> : <p className="empty-summary">Belum ada agenda mendatang pada bulan ini.</p>}
+    </li>)}</ul> : <p className="empty-summary">{t('Belum ada agenda mendatang pada bulan ini.', 'No upcoming agendas this month.')}</p>}
   </section>;
 }
 
 function Members({ members, user }) {
+  const online = members.filter((member) => member.online).length;
   return <section className="panel members">
-    <div className="section-header"><span className="section-icon section-icon-green"><UsersRound size={19} /></span><div><h2>Anggota tim</h2><p>{members.filter((member) => member.online).length} online dari {members.length} anggota</p></div></div>
+    <div className="section-header"><span className="section-icon section-icon-green"><UsersRound size={19} /></span><div><h2>{t('Anggota tim', 'Team members')}</h2><p>{t(`${online} online dari ${members.length} anggota`, `${online} of ${members.length} members online`)}</p></div></div>
     <ul className="member-list">{members.map((member) => <MemberRow key={member.id} member={member} me={user.id} />)}</ul>
   </section>;
 }
 
 export function Dashboard({ user, workspace, refresh, networkError }) {
+  const weekdays = t(['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'], ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
   const today = dateKey();
   const [agenda, setAgenda] = useState(() => {
     const date = linkedDate();
@@ -116,7 +119,9 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
       await api(`/events/${form.id}`, 'DELETE', undefined, { space: space.id });
     } else {
       if (form.id) {
-        const changes = Object.fromEntries(Object.entries(fields).filter(([name, value]) => (form[name] ?? '') !== value));
+        const { activities, ...values } = fields;
+        const changes = Object.fromEntries(Object.entries(values).filter(([name, value]) => (form[name] ?? '') !== value));
+        if (JSON.stringify(eventActivities(form)) !== JSON.stringify(activities)) changes.activities = activities;
         if (!Object.keys(changes).length) return;
         await api(`/events/${form.id}`, 'PATCH', changes, { space: space.id });
       } else {
@@ -137,12 +142,12 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
       <section className="panel calendar" aria-labelledby="calendar-title">
         <div className="calendar-header">
           <div className="section-header"><span className="section-icon section-icon-blue"><CalendarDays size={21} /></span>
-            <div><h2 id="calendar-title">{monthLabel(month)}</h2><p>{space.kind === 'team' ? 'Kalender tim' : 'Kalender pribadi'} · WIB</p></div>
+            <div><h2 id="calendar-title">{monthLabel(month)}</h2><p>{space.kind === 'team' ? t('Kalender tim', 'Team calendar') : t('Kalender pribadi', 'Personal calendar')} · WIB</p></div>
           </div>
           <div className="calendar-actions">
-            <button className="button today-button" onClick={() => setMonth(fromKey(today.slice(0, 7) + '-01'))}>Hari ini</button>
-            <IconButton label="Bulan sebelumnya" onClick={() => setMonth(utcDate(year, monthIndex - 1))}><ChevronLeft size={19} /></IconButton>
-            <IconButton label="Bulan berikutnya" onClick={() => setMonth(utcDate(year, monthIndex + 1))}><ChevronRight size={19} /></IconButton>
+            <button className="button today-button" onClick={() => setMonth(fromKey(today.slice(0, 7) + '-01'))}>{t('Hari ini', 'Today')}</button>
+            <IconButton label={t('Bulan sebelumnya', 'Previous month')} onClick={() => setMonth(utcDate(year, monthIndex - 1))}><ChevronLeft size={19} /></IconButton>
+            <IconButton label={t('Bulan berikutnya', 'Next month')} onClick={() => setMonth(utcDate(year, monthIndex + 1))}><ChevronRight size={19} /></IconButton>
           </div>
         </div>
         <div className="calendar-weekdays" aria-hidden="true">{weekdays.map((day) => <span key={day}>{day}</span>)}</div>
@@ -164,7 +169,7 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
               className={`day ${inMonth ? '' : 'day-outside'} ${key === today ? 'day-today' : ''} ${red ? 'day-red' : ''}`}
               onClick={() => selectDay(key)}>
               <span className="day-top"><span className="day-number">{Number(key.slice(-2))}</span>{key === today && <span className="today-marker" />}</span>
-              <span className="sr-only">{` ${monthLabel(fromKey(key))}, ${list.length} kegiatan${priority !== 'none' ? `, ${priorities[priority]}` : ''}${markers.length ? `, ${markers.map(({ title }) => title).join(', ')}` : ''}`}</span>
+              <span className="sr-only">{` ${monthLabel(fromKey(key))}, ${list.length} ${t('agenda', 'agenda items')}${priority !== 'none' ? `, ${priorities()[priority]}` : ''}${markers.length ? `, ${markers.map(({ title }) => title).join(', ')}` : ''}`}</span>
               <span className="day-markers" aria-hidden="true">{markers.slice(0, 2).map((item, i) => <span className={`day-marker ${item.color}`} key={i}><i /><span>{item.title}</span></span>)}
                 {markers.length > 2 && <small>+{markers.length - 2}</small>}
               </span>
@@ -173,18 +178,18 @@ export function Dashboard({ user, workspace, refresh, networkError }) {
         </div>
         <div className="calendar-footer">
           <div className="calendar-legend">
-            <span><i className="legend-dot priority-optional" /> Opsional</span><span><i className="legend-dot priority-important" /> Important</span>
-            <span><i className="legend-dot red" /> Libur nasional</span><span><i className="legend-dot orange" /> Cuti bersama</span><span><i className="legend-dot violet" /> Peringatan</span>
+            <span><i className="legend-dot priority-optional" /> {priorities().optional}</span><span><i className="legend-dot priority-important" /> Important</span>
+            <span><i className="legend-dot red" /> {t('Libur nasional', 'Public holiday')}</span><span><i className="legend-dot orange" /> {t('Cuti bersama', 'Joint leave')}</span><span><i className="legend-dot violet" /> {t('Peringatan', 'Observance')}</span>
           </div>
-          <a className="button calendar-list-link" href={spaceHref('/agenda', space.id)}><List size={16} aria-hidden="true" /> Semua agenda</a>
+          <a className="button calendar-list-link" href={spaceHref('/agenda', space.id)}><List size={16} aria-hidden="true" /> {t('Semua agenda', 'All agendas')}</a>
         </div>
       </section>
-      <aside className="dashboard-aside" aria-label="Ringkasan tim">
+      <aside className="dashboard-aside" aria-label={t('Ringkasan ruang', 'Workspace summary')}>
         <ActivitySummary events={events} month={monthKey} selectDay={selectDay} today={today} />
         {space.kind === 'team' && <Members members={members} user={user} />}
       </aside>
     </div>
-    <footer className="page-footer"><CalendarPlus size={16} /> Planer <span>·</span> <Flag size={14} /> <a href="https://www.setneg.go.id/baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_2026">SKB 2026</a><span>·</span><a href="https://setneg.go.id/baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_2027">SKB 2027</a><span>·</span><a href="https://www.un.org/en/observances/list-days-weeks">Hari internasional PBB</a></footer>
+    <footer className="page-footer"><CalendarPlus size={16} /> Planer <span>·</span> <Flag size={14} /> <a href="https://www.setneg.go.id/baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_2026">SKB 2026</a><span>·</span><a href="https://setneg.go.id/baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_2027">SKB 2027</a><span>·</span><a href="https://www.un.org/en/observances/list-days-weeks">{t('Hari internasional PBB', 'UN international days')}</a></footer>
     {agenda && <AgendaDialog date={agenda.date} startAdding={agenda.startAdding} close={closeAgenda}
       holidays={holidays(agenda.date)} events={grouped.get(agenda.date) || []} pending={pending}
       error={error} onToggle={toggleEvent} onSave={saveEvent} />}

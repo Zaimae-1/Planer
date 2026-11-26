@@ -1,11 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { dateKey, formatDate, fromKey, utcDate } from '../shared/dates.js';
+import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { dateKey, fromKey, utcDate } from '../shared/dates.js';
 import { IconButton } from './ui.jsx';
-import { clockPattern, toClock } from './event-time.js';
+import { clockPattern, eventActivities, toClock } from './event-time.js';
+import { formatDate, t } from './i18n.js';
 
-export const priorities = { none: 'Nothing', optional: 'Opsional', important: 'Important' };
-const weekdays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+export const priorities = () => ({ none: t('Biasa', 'Normal'), optional: t('Opsional', 'Optional'), important: 'Important' });
 
 function useFieldMenu() {
   const [open, setOpen] = useState(false);
@@ -49,6 +49,7 @@ function useFieldMenu() {
 }
 
 function EventDate({ initial, id }) {
+  const weekdays = t(['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'], ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
   const [value, setValue] = useState(initial);
   const [month, setMonth] = useState(fromKey(initial));
   const { open, setOpen, field, button, menuId, close } = useFieldMenu();
@@ -67,17 +68,17 @@ function EventDate({ initial, id }) {
   }
 
   return <div className="event-field" {...field}>
-    <label htmlFor={id}>Tanggal</label>
+    <label htmlFor={id}>{t('Tanggal', 'Date')}</label>
     <div className="field-with-icon">
       <input id={id} name="date" value={value} onChange={(event) => setValue(event.target.value)}
-        placeholder="YYYY-MM-DD" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" maxLength={10} title="Gunakan format YYYY-MM-DD" required />
-      <IconButton label="Pilih tanggal" {...button} onClick={toggle}><CalendarDays size={17} /></IconButton>
+        placeholder="YYYY-MM-DD" pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" maxLength={10} title={t('Gunakan format YYYY-MM-DD', 'Use YYYY-MM-DD')} required />
+      <IconButton label={t('Pilih tanggal', 'Choose date')} {...button} onClick={toggle}><CalendarDays size={17} /></IconButton>
     </div>
-    {open && <div className="field-menu event-date-menu" id={menuId} role="group" aria-label="Pilih tanggal kegiatan">
+    {open && <div className="field-menu event-date-menu" id={menuId} role="group" aria-label={t('Pilih tanggal kegiatan', 'Choose agenda date')}>
       <div className="date-menu-heading">
-        <IconButton label="Bulan sebelumnya di pemilih tanggal" disabled={year === 1 && monthIndex === 0} onClick={() => setMonth(utcDate(year, monthIndex - 1))}><ChevronLeft size={16} /></IconButton>
+        <IconButton label={t('Bulan sebelumnya', 'Previous month')} disabled={year === 1 && monthIndex === 0} onClick={() => setMonth(utcDate(year, monthIndex - 1))}><ChevronLeft size={16} /></IconButton>
         <strong aria-live="polite">{formatDate(month, { month: 'long', year: 'numeric' })}</strong>
-        <IconButton label="Bulan berikutnya di pemilih tanggal" disabled={year === 9999 && monthIndex === 11} onClick={() => setMonth(utcDate(year, monthIndex + 1))}><ChevronRight size={16} /></IconButton>
+        <IconButton label={t('Bulan berikutnya', 'Next month')} disabled={year === 9999 && monthIndex === 11} onClick={() => setMonth(utcDate(year, monthIndex + 1))}><ChevronRight size={16} /></IconButton>
       </div>
       <div className="date-menu-days">
         {weekdays.map((weekday) => <small key={weekday} aria-hidden="true">{weekday}</small>)}
@@ -94,6 +95,7 @@ function EventDate({ initial, id }) {
 }
 
 function EventPriority({ initial }) {
+  const labels = priorities();
   const [value, setValue] = useState(initial || 'none');
   const { open, setOpen, field, button, menuId, close } = useFieldMenu();
   const labelId = useId();
@@ -115,7 +117,7 @@ function EventPriority({ initial }) {
   }
 
   return <div className="event-field priority-field" {...field}>
-    <span id={labelId} className="event-field-label">Keterangan</span>
+    <span id={labelId} className="event-field-label">{t('Prioritas', 'Priority')}</span>
     <input type="hidden" name="priority" value={value} />
     <button type="button" className="priority-trigger" aria-labelledby={`${labelId} ${valueId}`} aria-haspopup="menu" {...button}
       onClick={() => setOpen(!open)} onKeyDown={(event) => {
@@ -124,10 +126,10 @@ function EventPriority({ initial }) {
           setOpen(true);
         }
       }}>
-      <span id={valueId}><i className={`legend-dot priority-${value}`} />{priorities[value]}</span><ChevronDown size={16} aria-hidden="true" />
+      <span id={valueId}><i className={`legend-dot priority-${value}`} />{labels[value]}</span><ChevronDown size={16} aria-hidden="true" />
     </button>
     {open && <div className="field-menu priority-menu" ref={options} id={menuId} role="menu" aria-labelledby={labelId} onKeyDown={move}>
-      {Object.entries(priorities).map(([key, label]) =>
+      {Object.entries(labels).map(([key, label]) =>
         <button type="button" role="menuitemradio" tabIndex={-1} key={key} aria-checked={key === value}
           onClick={() => { setValue(key); close(); }}>
           <i className={`legend-dot priority-${key}`} />{label}{key === value && <Check size={15} aria-hidden="true" />}
@@ -136,37 +138,56 @@ function EventPriority({ initial }) {
   </div>;
 }
 
-function EventTime({ time }) {
+function EventTime({ time, row, describedBy, index }) {
   const { clock, period } = toClock(time);
   const id = useId();
-  const hint = useId();
   return <div className="event-field">
-    <label htmlFor={id}><span className="editor-time-label">Jam <small>(opsional, WIB)</small></span></label>
+    <label htmlFor={id}><span className="editor-time-label">{t('Jam', 'Time')} <small>{t('(opsional, WIB)', '(optional, WIB)')}</small><span className="sr-only"> {index + 1}</span></span></label>
     <div className="time-controls">
-      <input id={id} name="clock" defaultValue={clock} maxLength={5} placeholder="9.00" pattern={clockPattern}
-        inputMode="decimal" title="Masukkan jam seperti 9.00 atau 12.30." aria-describedby={hint} />
+      <input id={id} name={`clock-${row}`} defaultValue={clock} maxLength={5} placeholder="9.00" pattern={clockPattern}
+        inputMode="decimal" title={t('Masukkan jam seperti 9.00 atau 12.30.', 'Enter a time like 9.00 or 12.30.')} aria-describedby={describedBy} />
       <fieldset className="time-period">
-        <legend className="sr-only">Periode jam</legend>
+        <legend className="sr-only">{t('Periode jam', 'Time period')} {index + 1}</legend>
         {['AM', 'PM'].map((value) => <label key={value}>
-          <input className="sr-only" type="radio" name="period" value={value} defaultChecked={period === value} />{value}
+          <input className="sr-only" type="radio" name={`period-${row}`} value={value} defaultChecked={period === value} />{value}
         </label>)}
       </fieldset>
     </div>
-    <small id={hint} className="time-hint">12.00 AM = tengah malam. 12.00 PM = tengah hari.</small>
   </div>;
 }
 
 export function EventFields({ event }) {
   const dateId = useId();
+  const timeHint = useId();
+  const [activities, setActivities] = useState(() => eventActivities(event).map((item, key) => ({ ...item, key })));
+  const nextKey = useRef(activities.length);
+  const list = useRef(null);
   return <>
-    <label>Nama kegiatan<input name="title" defaultValue={event.title} maxLength={100} placeholder="Contoh: Briefing tim" required data-editor-focus /></label>
+    <label>{t('Judul agenda', 'Agenda title')}<input name="title" defaultValue={event.title} maxLength={100} placeholder={t('Contoh: Perjalanan ke Surabaya', 'e.g. Trip to Surabaya')} required data-editor-focus /></label>
     <div className="form-row">
       <EventDate initial={event.date} id={dateId} />
-      <EventTime time={event.time} />
+      <EventPriority initial={event.priority} />
     </div>
-    <EventPriority initial={event.priority} />
-    <label><span className="editor-time-label">Notes <small>(opsional)</small></span>
-      <textarea name="notes" defaultValue={event.notes} maxLength={1000} rows={3} placeholder="Tambahkan catatan untuk kegiatan ini" />
+    <fieldset className="event-activities" ref={list}>
+      <legend>{t('Rangkaian kegiatan', 'Itinerary')} <small>{t('(opsional)', '(optional)')}</small></legend>
+      {activities.length > 0 && <small id={timeHint} className="time-hint">{t('12.00 AM = tengah malam. 12.00 PM = tengah hari.', '12.00 AM is midnight. 12.00 PM is noon.')}</small>}
+      {activities.map(({ key, title, time }, index) => <div className="activity-input-row" key={key}>
+        <input type="hidden" name="activity" value={key} />
+        <label>{t('Kegiatan', 'Activity')} {index + 1}<input name={`activity-${key}`} maxLength={100} defaultValue={title} placeholder={t('Contoh: Berangkat', 'e.g. Depart')} /></label>
+        <EventTime time={time} row={key} index={index} describedBy={timeHint} />
+        <IconButton label={t(`Hapus kegiatan ${index + 1}`, `Remove activity ${index + 1}`)} onClick={() => {
+          setActivities((items) => items.filter((item) => item.key !== key));
+          list.current.querySelector('.add-activity').focus();
+        }}><X size={16} /></IconButton>
+      </div>)}
+      <button type="button" className="button button-secondary add-activity" disabled={activities.length >= 24} onClick={() => {
+        const key = nextKey.current++;
+        setActivities((items) => [...items, { key }]);
+        requestAnimationFrame(() => list.current?.querySelector(`[name="activity-${key}"]`)?.focus());
+      }}><Plus size={16} />{t('Tambah rincian kegiatan', 'Add activity')}</button>
+    </fieldset>
+    <label><span className="editor-time-label">{t('Catatan', 'Notes')} <small>{t('(opsional)', '(optional)')}</small></span>
+      <textarea name="notes" defaultValue={event.notes} maxLength={1000} rows={2} placeholder={t('Tambahkan catatan untuk agenda ini', 'Add a note for this agenda')} />
     </label>
   </>;
 }

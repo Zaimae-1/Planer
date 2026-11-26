@@ -1,16 +1,17 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { t } from './i18n.js';
 import { ChevronDown, FileAudio2, MessageCircle, Mic, Paperclip, Pin, Reply, Send, Smile, Square, UsersRound, Video, X } from 'lucide-react';
 import { ChatThread, messagePreview } from './chat-thread.jsx';
 import { useRecording } from './recording.js';
-import { api, Avatar, Feedback, IconButton, Modal } from './ui.jsx';
+import { api, Avatar, avatarUrl, Feedback, IconButton, Modal } from './ui.jsx';
 
 const emojis = ['😀', '😂', '😊', '🥳', '🙌', '👍', '❤️', '🔥', '🎉', '✅', '👀', '🙏', '💪', '📅', '✨', '🚀'];
 const sizeLimit = 20 * 1024 * 1024;
 
 function ChatRoster({ members, me }) {
   return <ul className="chat-roster">{members.map((member) => <li key={member.id}>
-    <Avatar name={member.name} online={member.online} />
-    <div><strong>{member.name}{member.id === me ? ' (kamu)' : ''}</strong><small>{member.email}</small></div>
+    <Avatar name={member.name} online={member.online} src={avatarUrl(member)} />
+    <div><strong>{member.name}{member.id === me ? t(" (kamu)", " (you)") : ''}</strong><small>{member.email}</small></div>
     <span className={member.online ? 'online' : 'offline'}>{member.online ? 'Online' : 'Offline'}</span>
   </li>)}</ul>;
 }
@@ -19,7 +20,7 @@ function encodeFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve({ mime: file.type, name: file.name, data: reader.result.split(',')[1] });
-    reader.onerror = () => reject(new Error('File tidak bisa dibaca.'));
+    reader.onerror = () => reject(new Error(t("File tidak bisa dibaca.", "The file could not be read.")));
     reader.readAsDataURL(file);
   });
 }
@@ -49,8 +50,8 @@ export function Chat({ user, members, space, initialMessages = null }) {
 
   function chooseFile(next) {
     if (!next) return;
-    if (!next.type.startsWith('image/') && !next.type.startsWith('audio/') && !next.type.startsWith('video/')) { setError('Pilih foto, video, atau file audio.'); return; }
-    if (next.size > sizeLimit || !next.size) { setError('Ukuran lampiran harus antara 1 byte dan 20 MB.'); return; }
+    if (!next.type.startsWith('image/') && !next.type.startsWith('audio/') && !next.type.startsWith('video/')) { setError(t("Pilih foto, video, atau file audio.", "Choose an image, video, or audio file.")); return; }
+    if (next.size > sizeLimit || !next.size) { setError(t("Ukuran lampiran harus antara 1 byte dan 20 MB.", "Attachments must be between 1 byte and 20 MB.")); return; }
     setError('');
     setFile(next);
   }
@@ -140,15 +141,15 @@ export function Chat({ user, members, space, initialMessages = null }) {
 
   return <main className="page chat-page">
     <div className="chat-layout">
-      <section className="panel chat-panel" aria-label={`Grup ${space.name}`}>
+      <section className="panel chat-panel" aria-label={t(`Grup ${space.name}`, `${space.name} chat`)}>
         <header className="chat-header">
           <span className="section-icon chat-emblem"><MessageCircle size={24} /></span>
-          <div className="chat-title"><h1>{space.name}</h1><p>{members.length} anggota <span aria-hidden="true">·</span> <span className="online">{online} online</span></p></div>
-          <IconButton className="chat-members-toggle" label="Lihat anggota grup" onClick={() => setShowMembers(true)}><UsersRound size={20} /></IconButton>
+          <div className="chat-title"><h1>{space.name}</h1><p>{t(`${members.length} anggota`, `${members.length} members`)} <span aria-hidden="true">·</span> <span className="online">{online} online</span></p></div>
+          <IconButton className="chat-members-toggle" label={t("Lihat anggota grup", "View group members")} onClick={() => setShowMembers(true)}><UsersRound size={20} /></IconButton>
         </header>
         {pins.length > 0 && <div className="pin-area">
           <button className="pin-bar" aria-expanded={showPins} onClick={() => setShowPins(!showPins)}>
-            <span className="pin-symbol"><Pin size={16} /></span><span className="pin-copy"><strong>{pins.length === 1 ? 'Pesan disematkan' : `${pins.length} pesan disematkan`}</strong><small>{messagePreview(pins[0])}</small></span><ChevronDown size={17} />
+            <span className="pin-symbol"><Pin size={16} /></span><span className="pin-copy"><strong>{pins.length === 1 ? t("Pesan disematkan", "Pinned message") : t(`${pins.length} pesan disematkan`, `${pins.length} pinned messages`)}</strong><small>{messagePreview(pins[0])}</small></span><ChevronDown size={17} />
           </button>
           {showPins && <ul className="pin-list">{pins.map((message) => <li key={message.id}><button onClick={() => {
             document.getElementById(`message-${message.id}`)?.scrollIntoView({ block: 'center', behavior: 'auto' }); setShowPins(false);
@@ -161,29 +162,29 @@ export function Chat({ user, members, space, initialMessages = null }) {
           }} />
         <form className="chat-composer" onSubmit={send}>
           <Feedback error={error || (loaded ? loadError : '')} />
-          {reply && <div className="compose-preview"><Reply size={17} /><span><strong>Balas {reply.name}</strong><small>{messagePreview(reply)}</small></span><IconButton label="Batalkan balasan" onClick={() => setReply(null)}><X size={17} /></IconButton></div>}
+          {reply && <div className="compose-preview"><Reply size={17} /><span><strong>{t(`Balas ${reply.name}`, `Reply to ${reply.name}`)}</strong><small>{messagePreview(reply)}</small></span><IconButton label={t("Batalkan balasan", "Cancel reply")} onClick={() => setReply(null)}><X size={17} /></IconButton></div>}
           {file && <div className="compose-preview">{file.type.startsWith('image/') && fileURL ? <img src={fileURL} alt="" /> : file.type.startsWith('video/') ? <Video size={19} /> : <FileAudio2 size={19} />}
-            <span><strong>{file.name}</strong><small>{Math.ceil(file.size / 1024)} KB</small></span><IconButton label="Lepas lampiran" onClick={() => { setFile(null); setFileURL(''); }}><X size={17} /></IconButton></div>}
-          {emoji && !recording.recording && <div className="emoji-picker" aria-label="Pilih emoji">{emojis.map((symbol) => <button type="button" key={symbol} onClick={() => addEmoji(symbol)}>{symbol}</button>)}</div>}
-          {recording.recording ? <div className="recording-row"><i /><span>Merekam… {Math.floor(recording.seconds / 60)}:{String(recording.seconds % 60).padStart(2, '0')}</span>
-            <IconButton label="Batalkan rekaman" onClick={() => recording.stop(true)}><X size={18} /></IconButton>
-            <button type="button" className="button button-primary" onClick={() => recording.stop()}><Square size={14} /> Selesai</button></div> :
+            <span><strong>{file.name}</strong><small>{Math.ceil(file.size / 1024)} KB</small></span><IconButton label={t("Lepas lampiran", "Remove attachment")} onClick={() => { setFile(null); setFileURL(''); }}><X size={17} /></IconButton></div>}
+          {emoji && !recording.recording && <div className="emoji-picker" aria-label={t("Pilih emoji", "Choose an emoji")}>{emojis.map((symbol) => <button type="button" key={symbol} onClick={() => addEmoji(symbol)}>{symbol}</button>)}</div>}
+          {recording.recording ? <div className="recording-row"><i /><span>{t('Merekam…', 'Recording…')} {Math.floor(recording.seconds / 60)}:{String(recording.seconds % 60).padStart(2, '0')}</span>
+            <IconButton label={t("Batalkan rekaman", "Cancel recording")} onClick={() => recording.stop(true)}><X size={18} /></IconButton>
+            <button type="button" className="button button-primary" onClick={() => recording.stop()}><Square size={14} /> {t("Selesai", "Done")}</button></div> :
             <div className="composer-row">
               <input type="file" ref={upload} accept="image/*,video/*,audio/*" hidden onChange={(event) => { chooseFile(event.target.files[0]); event.target.value = ''; }} />
-              <IconButton label="Lampirkan foto, video, atau audio" onClick={() => upload.current.click()} disabled={busy}><Paperclip size={20} /></IconButton>
-              <IconButton label="Pilih emoji" aria-expanded={emoji} onClick={() => setEmoji(!emoji)} disabled={busy}><Smile size={20} /></IconButton>
-              <textarea ref={field} rows={1} aria-label="Tulis pesan" value={text} onChange={(event) => setText(event.target.value)} maxLength={4000} placeholder="Tulis pesan…" disabled={busy}
+              <IconButton label={t("Lampirkan foto, video, atau audio", "Attach a photo, video, or audio file")} onClick={() => upload.current.click()} disabled={busy}><Paperclip size={20} /></IconButton>
+              <IconButton label={t("Pilih emoji", "Choose an emoji")} aria-expanded={emoji} onClick={() => setEmoji(!emoji)} disabled={busy}><Smile size={20} /></IconButton>
+              <textarea ref={field} rows={1} aria-label={t("Tulis pesan", "Write a message")} value={text} onChange={(event) => setText(event.target.value)} maxLength={4000} placeholder={t("Tulis pesan…", "Write a message…")} disabled={busy}
                 onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form.requestSubmit(); } }} />
-              <IconButton label="Rekam pesan suara" onClick={() => { setEmoji(false); setError(''); recording.record(); }} disabled={busy || Boolean(file)}><Mic size={20} /></IconButton>
-              <button className="button button-primary send-button" aria-label="Kirim pesan" title="Kirim pesan" disabled={busy || (!text.trim() && !file)}><Send size={19} /></button>
+              <IconButton label={t("Rekam pesan suara", "Record voice message")} onClick={() => { setEmoji(false); setError(''); recording.record(); }} disabled={busy || Boolean(file)}><Mic size={20} /></IconButton>
+              <button className="button button-primary send-button" aria-label={t("Kirim pesan", "Send message")} title={t("Kirim pesan", "Send message")} disabled={busy || (!text.trim() && !file)}><Send size={19} /></button>
             </div>}
         </form>
       </section>
       <aside className="panel chat-members" aria-labelledby="chat-members-title">
-        <div className="section-header"><span className="section-icon section-icon-green"><UsersRound size={19} /></span><div><h2 id="chat-members-title">Anggota grup</h2><p>{online} dari {members.length} anggota online</p></div></div>
+        <div className="section-header"><span className="section-icon section-icon-green"><UsersRound size={19} /></span><div><h2 id="chat-members-title">{t("Anggota grup", "Group members")}</h2><p>{t(`${online} dari ${members.length} anggota online`, `${online} of ${members.length} members online`)}</p></div></div>
         <ChatRoster members={members} me={user.id} />
       </aside>
     </div>
-    {showMembers && <Modal title="Anggota grup" close={() => setShowMembers(false)}>{() => <ChatRoster members={members} me={user.id} />}</Modal>}
+    {showMembers && <Modal title={t("Anggota grup", "Group members")} close={() => setShowMembers(false)}>{() => <ChatRoster members={members} me={user.id} />}</Modal>}
   </main>;
 }

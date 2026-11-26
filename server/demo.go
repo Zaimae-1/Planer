@@ -15,7 +15,7 @@ func (a *app) demo(w http.ResponseWriter, _ *http.Request, user *account) error 
 	}
 	defer tx.Rollback()
 	id := randomToken()
-	user = &account{ID: id, Name: "Zaim Ramadhan", Username: "zaim", Email: "zaim@example.com", Demo: true}
+	user = &account{ID: id, Name: "Zaim Ramadhan", Username: "zaim", Email: "zaim@example.com", Demo: true, Language: "id"}
 	people := []struct {
 		id, name, username string
 		example            int

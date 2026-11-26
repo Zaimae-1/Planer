@@ -194,6 +194,10 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("POST /api/register", a.endpoint(a.register, "", 12))
 	mux.HandleFunc("POST /api/login", a.endpoint(a.login, "", 20))
 	mux.HandleFunc("POST /api/logout", a.endpoint(a.logout, "", 0))
+	mux.HandleFunc("GET /api/profile", a.endpoint(a.profile, "signed", 0))
+	mux.HandleFunc("PUT /api/profile", a.endpoint(a.saveProfile, "signed", 20))
+	mux.HandleFunc("PATCH /api/profile/language", a.endpoint(a.changeLanguage, "signed", 30))
+	mux.HandleFunc("GET /api/avatars/{id}", a.endpoint(a.avatar, "signed", 0))
 	mux.HandleFunc("POST /api/join", a.endpoint(a.join, "", 30))
 	mux.HandleFunc("GET /api/spaces", a.endpoint(a.spaces, "signed", 0))
 	mux.HandleFunc("POST /api/spaces", a.endpoint(a.addSpace, "signed", 20))
@@ -201,6 +205,11 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("POST /api/events", a.endpoint(a.addEvent, "space", 0))
 	mux.HandleFunc("PATCH /api/events/{id}", a.endpoint(a.updateEvent, "space", 0))
 	mux.HandleFunc("DELETE /api/events/{id}", a.endpoint(a.deleteEvent, "space", 0))
+	mux.HandleFunc("GET /api/documents", a.endpoint(a.documents, "space", 0))
+	mux.HandleFunc("POST /api/documents", a.endpoint(a.createDocument, "space", 60))
+	mux.HandleFunc("GET /api/documents/{id}", a.endpoint(a.getDocument, "space", 0))
+	mux.HandleFunc("PUT /api/documents/{id}", a.endpoint(a.saveDocument, "space", 0))
+	mux.HandleFunc("DELETE /api/documents/{id}", a.endpoint(a.deleteDocument, "space", 0))
 	mux.HandleFunc("POST /api/invites", a.endpoint(a.invite, "team", 30))
 	mux.HandleFunc("POST /api/invites/{id}/verify", a.endpoint(a.verify, "team", 0))
 	mux.HandleFunc("GET /api/notifications", a.endpoint(a.notifications, "signed", 0))
@@ -212,7 +221,7 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		respond(w, 404, map[string]string{"error": "Halaman API tidak ditemukan."})
 	})
-	for _, page := range []string{"/{$}", "/dashboard", "/agenda", "/messages", "/invite", "/notifications", "/register", "/login", "/join"} {
+	for _, page := range []string{"/{$}", "/dashboard", "/agenda", "/notes", "/settings", "/messages", "/invite", "/notifications", "/register", "/login", "/join"} {
 		mux.HandleFunc("GET "+page, func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, "dist/index.html")
 		})

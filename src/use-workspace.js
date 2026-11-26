@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { api, spaceFromUrl, spaceHref } from './ui.jsx';
+import { setLanguage, t } from './i18n.js';
 
 async function loadWorkspace(space, signal, preloadChat = false) {
   const [workspace, spaces, notifications, chat] = await Promise.all([
@@ -14,7 +15,7 @@ async function loadWorkspace(space, signal, preloadChat = false) {
 }
 
 function messageFor(error) {
-  return error.message === 'Failed to fetch' ? 'Koneksi ke Planer terputus.' : error.message;
+  return error.message === 'Failed to fetch' ? t('Koneksi ke Planer terputus.', 'The connection to Planer was lost.') : error.message;
 }
 
 export function pageFor(pathname) {
@@ -37,7 +38,7 @@ function animateRoute(element, direction, entering) {
   });
 }
 
-export function useWorkspace(pathname, content, view) {
+export function useWorkspace(pathname, content, view, unsaved) {
   const [user, setUser] = useState(null);
   const [data, setData] = useState(null);
   const [route, setRoute] = useState(() => new URL(location.href));
@@ -87,6 +88,10 @@ export function useWorkspace(pathname, content, view) {
     const newPage = page !== pageFor(previous.pathname) || url.searchParams.get('date') !== previous.searchParams.get('date');
     const space = url.searchParams.get('space');
     const newSpace = space !== active.current && (space !== null || previous.searchParams.has('space'));
+    if ((newPage || newSpace) && unsaved.current && !window.confirm(t('Buang perubahan catatan yang belum disimpan?', 'Discard unsaved note changes?'))) {
+      if (fromHistory) history.pushState(null, '', previous);
+      return;
+    }
     transition.current?.abort();
     motion.current?.cancel();
     if (!newPage && !newSpace) {
@@ -104,7 +109,7 @@ export function useWorkspace(pathname, content, view) {
     transition.current = controller;
     setSwitching(newSpace);
     setSwitchError('');
-    const timeout = newSpace ? setTimeout(() => controller.abort(new Error('Ruang terlalu lama merespons. Coba lagi.')), 12_000) : undefined;
+    const timeout = newSpace ? setTimeout(() => controller.abort(new Error(t('Ruang terlalu lama merespons. Coba lagi.', 'The space took too long to respond. Try again.'))), 12_000) : undefined;
     const element = newPage ? view.current : content.current;
     try {
       const next = newSpace ? await loadWorkspace(space, controller.signal, page === '/messages' && kind !== 'personal') : null;
@@ -149,7 +154,7 @@ export function useWorkspace(pathname, content, view) {
         setSwitching(false);
       }
     }
-  }, [content, view]);
+  }, [content, view, unsaved]);
 
   const switchSpace = useCallback((target, direction) => {
     const url = new URL(currentRoute.current.pathname, location.origin);
@@ -165,6 +170,7 @@ export function useWorkspace(pathname, content, view) {
         if (!profile && pathname === '/') profile = await api('/demo', 'POST');
         if (!mounted) return;
         if (!profile) { location.replace('/login'); return; }
+        setLanguage(profile.language);
         setUser(profile);
         authenticated.current = true;
         await refresh(false);
@@ -194,5 +200,5 @@ export function useWorkspace(pathname, content, view) {
     return () => window.removeEventListener('popstate', restoreRoute);
   }, [navigate]);
 
-  return { user, data, route, error, refresh, switching, switchError, switchSpace, navigate };
+  return { user, setUser, data, route, error, refresh, switching, switchError, switchSpace, navigate };
 }

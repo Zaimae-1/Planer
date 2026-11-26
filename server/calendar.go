@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"regexp"
@@ -11,20 +12,30 @@ import (
 )
 
 type event struct {
-	ID       string `json:"id"`
-	Date     string `json:"date"`
-	Time     string `json:"time"`
-	Title    string `json:"title"`
-	Notes    string `json:"notes"`
-	Priority string `json:"priority"`
-	Done     bool   `json:"done"`
+	ID         string     `json:"id"`
+	Date       string     `json:"date"`
+	Time       string     `json:"time"`
+	Title      string     `json:"title"`
+	Notes      string     `json:"notes"`
+	Priority   string     `json:"priority"`
+	Done       bool       `json:"done"`
+	Activities []activity `json:"activities"`
+}
+
+type activity struct {
+	Title string `json:"title"`
+	Time  string `json:"time"`
 }
 
 func scanEvent(row scanner, e *event) error {
-	return row.Scan(&e.ID, &e.Date, &e.Time, &e.Title, &e.Notes, &e.Priority, &e.Done)
+	var activities []byte
+	if err := row.Scan(&e.ID, &e.Date, &e.Time, &e.Title, &e.Notes, &e.Priority, &e.Done, &activities); err != nil {
+		return err
+	}
+	return json.Unmarshal(activities, &e.Activities)
 }
 
-const eventColumns = "id, date, time, title, notes, priority, done"
+const eventColumns = "id, date, time, title, notes, priority, done, activities"
 
 var timePattern = regexp.MustCompile(`^(?:[01]\d|2[0-3]):[0-5]\d$`)
 
@@ -38,7 +49,20 @@ func (e *event) validate() error {
 	}
 	e.Title = strings.TrimSpace(e.Title)
 	if n := utf8.RuneCountInString(e.Title); n < 1 || n > 100 {
-		return invalid("Nama kegiatan harus berisi 1–100 karakter.")
+		return invalid("Judul agenda harus berisi 1–100 karakter.")
+	}
+	if strings.ContainsRune(e.Title, 0) || len(e.Activities) > 24 {
+		return invalid("Agenda dapat memuat maksimal 24 kegiatan.")
+	}
+	for i := range e.Activities {
+		item := &e.Activities[i]
+		item.Title = strings.TrimSpace(item.Title)
+		if n := utf8.RuneCountInString(item.Title); n < 1 || n > 100 || strings.ContainsRune(item.Title, 0) {
+			return invalid("Nama kegiatan harus berisi 1–100 karakter.")
+		}
+		if item.Time != "" && !timePattern.MatchString(item.Time) {
+			return invalid("Jam kegiatan tidak valid.")
+		}
 	}
 	e.Notes = strings.TrimSpace(e.Notes)
 	if utf8.RuneCountInString(e.Notes) > 1000 || strings.ContainsRune(e.Notes, 0) {
@@ -53,14 +77,25 @@ func (e *event) validate() error {
 }
 
 func insertEvent(db executor, team string, e event) error {
-	_, err := db.Exec("INSERT INTO events (team, "+eventColumns+") VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-		team, e.ID, e.Date, e.Time, e.Title, e.Notes, e.Priority, e.Done)
+	activities, err := encodeActivities(e.Activities)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec("INSERT INTO events (team, "+eventColumns+") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)",
+		team, e.ID, e.Date, e.Time, e.Title, e.Notes, e.Priority, e.Done, string(activities))
 	return err
+}
+
+func encodeActivities(items []activity) ([]byte, error) {
+	if items == nil {
+		items = []activity{}
+	}
+	return json.Marshal(items)
 }
 
 func (a *app) addEvent(w http.ResponseWriter, r *http.Request, user *account) error {
 	e := event{Priority: "none"}
-	if err := readJSON(w, r, &e, 16<<10); err != nil {
+	if err := readJSON(w, r, &e, 64<<10); err != nil {
 		return err
 	}
 	if err := e.validate(); err != nil {
@@ -77,8 +112,9 @@ func (a *app) updateEvent(w http.ResponseWriter, r *http.Request, user *account)
 	var patch struct {
 		Date, Time, Title, Notes, Priority *string
 		Done                               *bool
+		Activities                         *[]activity
 	}
-	if err := readJSON(w, r, &patch, 16<<10); err != nil {
+	if err := readJSON(w, r, &patch, 64<<10); err != nil {
 		return err
 	}
 	tx, err := a.db.Begin()
@@ -113,11 +149,19 @@ func (a *app) updateEvent(w http.ResponseWriter, r *http.Request, user *account)
 	if patch.Done != nil {
 		e.Done = *patch.Done
 	}
+	if patch.Activities != nil {
+		e.Activities = *patch.Activities
+		e.Time = ""
+	}
 	if err := e.validate(); err != nil {
 		return err
 	}
-	if _, err := tx.Exec("UPDATE events SET date = $1, time = $2, title = $3, notes = $4, priority = $5, done = $6 WHERE id = $7",
-		e.Date, e.Time, e.Title, e.Notes, e.Priority, e.Done, e.ID); err != nil {
+	activities, err := encodeActivities(e.Activities)
+	if err != nil {
+		return err
+	}
+	if _, err := tx.Exec("UPDATE events SET date = $1, time = $2, title = $3, notes = $4, priority = $5, done = $6, activities = $7::jsonb WHERE id = $8",
+		e.Date, e.Time, e.Title, e.Notes, e.Priority, e.Done, string(activities), e.ID); err != nil {
 		return err
 	}
 	if err := tx.Commit(); err != nil {

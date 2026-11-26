@@ -6,6 +6,10 @@ CREATE TABLE IF NOT EXISTS accounts (
 CREATE UNIQUE INDEX IF NOT EXISTS account_email ON accounts(email) WHERE NOT demo;
 CREATE UNIQUE INDEX IF NOT EXISTS account_phone ON accounts(phone) WHERE NOT demo;
 CREATE UNIQUE INDEX IF NOT EXISTS account_username ON accounts(lower(username)) WHERE NOT demo;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'id' CHECK (language IN ('id', 'en'));
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS avatar BYTEA;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS avatar_type TEXT;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS avatar_revision BIGINT NOT NULL DEFAULT 0;
 CREATE TABLE IF NOT EXISTS spaces (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('personal', 'team')),
   owner TEXT NOT NULL REFERENCES accounts(id), created BIGINT NOT NULL
@@ -28,7 +32,13 @@ CREATE TABLE IF NOT EXISTS events (
 ALTER TABLE events ALTER COLUMN category SET DEFAULT 'kegiatan';
 ALTER TABLE events ADD COLUMN IF NOT EXISTS notes TEXT NOT NULL DEFAULT '';
 ALTER TABLE events ADD COLUMN IF NOT EXISTS priority TEXT NOT NULL DEFAULT 'none' CHECK (priority IN ('none', 'optional', 'important'));
+ALTER TABLE events ADD COLUMN IF NOT EXISTS activities JSONB NOT NULL DEFAULT '[]';
 CREATE INDEX IF NOT EXISTS events_by_team ON events(team, date, time);
+CREATE TABLE IF NOT EXISTS documents (
+  id TEXT PRIMARY KEY, space TEXT NOT NULL REFERENCES spaces(id), title TEXT NOT NULL,
+  blocks JSONB NOT NULL DEFAULT '[]', updated BIGINT NOT NULL, revision INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS documents_by_space ON documents(space, updated DESC);
 CREATE TABLE IF NOT EXISTS invites (
   id TEXT PRIMARY KEY, team TEXT NOT NULL REFERENCES spaces(id), invited_by TEXT NOT NULL REFERENCES accounts(id),
   target TEXT REFERENCES accounts(id), username TEXT, email TEXT, phone TEXT, channel TEXT,

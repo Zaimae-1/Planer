@@ -1,3 +1,5 @@
+import { t } from './i18n.js';
+
 const national = {
   '2026': {
     '01-01': 'Tahun Baru Masehi', '01-16': 'Isra Mikraj Nabi Muhammad', '02-17': 'Tahun Baru Imlek',
@@ -39,13 +41,60 @@ const commemorations = {
   '10-28': 'Hari Sumpah Pemuda', '11-10': 'Hari Pahlawan', '11-25': 'Hari Guru Nasional', '12-22': 'Hari Ibu',
 };
 
+const englishNames = {
+  'Tahun Baru Masehi': 'New Year’s Day',
+  'Isra Mikraj Nabi Muhammad': 'Isra and Mi’raj',
+  'Tahun Baru Imlek': 'Chinese New Year',
+  Imlek: 'Chinese New Year',
+  'Hari Suci Nyepi': 'Nyepi',
+  Idulfitri: 'Eid al-Fitr',
+  'Wafat Yesus Kristus': 'Good Friday',
+  Paskah: 'Easter Sunday',
+  'Hari Buruh Internasional': 'International Workers’ Day',
+  'Kenaikan Yesus Kristus': 'Ascension Day',
+  Iduladha: 'Eid al-Adha',
+  'Hari Raya Waisak': 'Vesak',
+  Waisak: 'Vesak',
+  'Hari Lahir Pancasila': 'Pancasila Day',
+  'Tahun Baru Islam': 'Islamic New Year',
+  'Hari Kemerdekaan RI': 'Indonesian Independence Day',
+  'Maulid Nabi Muhammad': 'Prophet Muhammad’s Birthday',
+  'Hari Natal': 'Christmas Day',
+  Natal: 'Christmas',
+  'Hari Bahasa Ibu Internasional': 'International Mother Language Day',
+  'Hari Perempuan Internasional': 'International Women’s Day',
+  'Hari Air Sedunia': 'World Water Day',
+  'Hari Kesehatan Sedunia': 'World Health Day',
+  'Hari Bumi': 'Earth Day',
+  'Hari Kebebasan Pers Sedunia': 'World Press Freedom Day',
+  'Hari Lingkungan Hidup Sedunia': 'World Environment Day',
+  'Hari Laut Sedunia': 'World Oceans Day',
+  'Hari Persahabatan Internasional': 'International Day of Friendship',
+  'Hari Pemuda Internasional': 'International Youth Day',
+  'Hari Perdamaian Internasional': 'International Day of Peace',
+  'Hari Guru Sedunia': 'World Teachers’ Day',
+  'Hari Perserikatan Bangsa-Bangsa': 'United Nations Day',
+  'Hari Toleransi Internasional': 'International Day for Tolerance',
+  'Hari Anak Sedunia': 'World Children’s Day',
+  'Hari Penghapusan Kekerasan terhadap Perempuan': 'International Day for the Elimination of Violence against Women',
+  'Hari Disabilitas Internasional': 'International Day of Persons with Disabilities',
+  'Hari Hak Asasi Manusia': 'Human Rights Day',
+  'Hari Kartini': 'Kartini Day',
+  'Hari Pendidikan Nasional': 'National Education Day',
+  'Hari Kebangkitan Nasional': 'National Awakening Day',
+  'Hari Sumpah Pemuda': 'Youth Pledge Day',
+  'Hari Pahlawan': 'Heroes’ Day',
+  'Hari Guru Nasional': 'National Teachers’ Day',
+  'Hari Ibu': 'Mother’s Day',
+};
+
 export function holidays(key) {
   const year = key.slice(0, 4);
   const day = key.slice(5);
   return [
-    [national[year]?.[day], 'Libur nasional', 'red'],
-    [leave[year]?.[day], 'Cuti bersama', 'orange'],
-    [commemorations[day], 'Peringatan nasional', 'violet'],
-    [observances[day], 'Peringatan internasional', 'violet'],
-  ].filter(([name]) => name);
+    [national[year]?.[day], t('Libur nasional', 'Public holiday'), 'red'],
+    [leave[year]?.[day], t('Cuti bersama', 'Joint leave'), 'orange'],
+    [commemorations[day], t('Peringatan nasional', 'National observance'), 'violet'],
+    [observances[day], t('Peringatan internasional', 'International observance'), 'violet'],
+  ].filter(([name]) => name).map(([name, kind, color]) => [t(name, englishNames[name] || name), kind, color]);
 }
