@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Camera, Globe2, Settings2, UserRound } from 'lucide-react';
-import { api, Avatar, avatarUrl, Feedback } from './ui.jsx';
+import { ArrowRight, Camera, Globe2, Settings2, Sparkles, UserRound } from 'lucide-react';
+import { api, Avatar, avatarUrl, Feedback, spaceHref } from './ui.jsx';
 import { setLanguage, t, useLanguage } from './i18n.js';
 
 function readPhoto(file) {
@@ -86,7 +86,7 @@ function ProfileForm({ profile, onSaved }) {
   </form>;
 }
 
-export function SettingsPage({ user, onProfile }) {
+export function SettingsPage({ user, onProfile, space }) {
   const language = useLanguage();
   const [profile, setProfile] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -129,6 +129,12 @@ export function SettingsPage({ user, onProfile }) {
           <button key={code} type="button" lang={code} className="button button-secondary" aria-pressed={language === code} disabled={busy} onClick={() => choose(code)}>{label}</button>)}
       </div>
       <Feedback error={languageError} />
+    </section>
+    <section className="panel settings-panel" aria-labelledby="ai-settings-heading">
+      <div className="section-header"><span className="section-icon section-icon-blue"><Sparkles size={20} aria-hidden="true" /></span><div>
+        <h2 id="ai-settings-heading">{t('Asisten AI', 'AI assistant')}</h2><p>{t('Konfigurasi API, WhatsApp, dan Gmail.', 'API, WhatsApp, and Gmail configuration.')}</p>
+      </div></div>
+      <a className="button button-secondary" href={spaceHref('/settings/ai', space.id)}>{t('Pengaturan AI', 'AI settings')}<ArrowRight size={16} aria-hidden="true" /></a>
     </section>
   </main>;
 }

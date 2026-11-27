@@ -221,7 +221,7 @@ func (a *app) routes() http.Handler {
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		respond(w, 404, map[string]string{"error": "Halaman API tidak ditemukan."})
 	})
-	for _, page := range []string{"/{$}", "/dashboard", "/agenda", "/notes", "/settings", "/messages", "/invite", "/notifications", "/register", "/login", "/join"} {
+	for _, page := range []string{"/{$}", "/dashboard", "/agenda", "/notes", "/settings", "/settings/ai", "/messages", "/invite", "/notifications", "/register", "/login", "/join"} {
 		mux.HandleFunc("GET "+page, func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, "dist/index.html")
 		})

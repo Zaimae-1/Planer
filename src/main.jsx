@@ -4,6 +4,8 @@ import { ArrowUpRight, Bell, BookOpen, CalendarDays, ChevronDown, FlaskConical, 
 import '@fontsource-variable/dm-sans';
 import '@fontsource-variable/source-sans-3';
 import { AllAgenda } from './agenda.jsx';
+import { PlanerAssistant } from './assistant.jsx';
+import { AssistantSettings } from './assistant-settings.jsx';
 import { AuthPage } from './auth.jsx';
 import { Chat } from './chat.jsx';
 import { Dashboard } from './dashboard.jsx';
@@ -19,6 +21,7 @@ import './styles.css';
 import './secondary.css';
 import './workspace.css';
 import './pages.css';
+import './assistant.css';
 import './motion.css';
 
 const pathname = location.pathname.replace(/\/$/, '') || '/';
@@ -30,7 +33,7 @@ const links = [
   ['/notifications', 'Notifikasi', 'Notifications', Bell],
   ['/invite', 'Undangan', 'Invitations', UserRoundPlus],
 ];
-const appPages = new Set(['/agenda', '/settings', ...links.map(([url]) => url)]);
+const appPages = new Set(['/agenda', '/settings', '/settings/ai', ...links.map(([url]) => url)]);
 
 function Navigation({ user, space, pending, activePage, unsaved }) {
   const [error, setError] = useState('');
@@ -129,13 +132,14 @@ function WorkspaceApp() {
     <a className="skip-link" href="#main-content">{t('Lewati ke konten', 'Skip to content')}</a>
     <Navigation user={user} space={space} pending={pending} activePage={activePage} unsaved={unsaved} />
     <div ref={view} id="main-content" className="workspace-content" tabIndex={-1}>
-      {activePage !== '/notifications' && activePage !== '/settings' && <div className="space-bar-wrap">
+      {activePage !== '/notifications' && !activePage.startsWith('/settings') && <div className="space-bar-wrap">
         <SpacePicker spaces={spaces} current={space} switching={switching} onSwitch={switchSpace} onCreate={onCreate} />
         <Feedback error={switchError} />
       </div>}
       <div className="workspace-route" ref={content} inert={switching}>
         <React.Fragment key={`${activePage}:${space.id}:${route.searchParams.get('date') || ''}`}>
-          {activePage === '/settings' ? <SettingsPage user={user} onProfile={setUser} />
+          {activePage === '/settings/ai' ? <AssistantSettings user={user} space={space} />
+            : activePage === '/settings' ? <SettingsPage user={user} onProfile={setUser} space={space} />
             : activePage === '/notes' ? <NotesPage space={space} unsaved={unsaved} />
               : activePage === '/notifications' ? <Notifications items={notifications} refresh={refresh} error={switchError || error} />
             : teamPage && space.kind === 'personal' ? <main className="page inner-page"><ChooseTeam page={activePage} spaces={spaces} onCreate={onCreate} /></main>
@@ -146,6 +150,7 @@ function WorkspaceApp() {
         </React.Fragment>
       </div>
     </div>
+    <PlanerAssistant key={space.id} workspace={workspace} refresh={refresh} />
     {newTeam && <NewTeamForm close={() => setNewTeam(false)} onCreated={(team) => {
       setNewTeam(false);
       navigate(new URL(spaceHref('/dashboard', team.id), location.origin));
