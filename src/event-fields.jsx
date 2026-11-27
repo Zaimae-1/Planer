@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, ListChecks, Plus, Trash2 } from 'lucide-react';
 import { dateKey, fromKey, utcDate } from '../shared/dates.js';
-import { IconButton } from './ui.jsx';
+import { animateOut, IconButton } from './ui.jsx';
 import { clockPattern, eventActivities, toClock } from './event-time.js';
 import { formatDate, t } from './i18n.js';
 
@@ -141,7 +141,7 @@ function EventPriority({ initial }) {
 function EventTime({ time, row, describedBy, index }) {
   const { clock, period } = toClock(time);
   const id = useId();
-  return <div className="event-field">
+  return <div className="event-field activity-time-field">
     <label htmlFor={id}><span className="editor-time-label">{t('Jam', 'Time')} <small>{t('(opsional, WIB)', '(optional, WIB)')}</small><span className="sr-only"> {index + 1}</span></span></label>
     <div className="time-controls">
       <input id={id} name={`clock-${row}`} defaultValue={clock} maxLength={5} placeholder="9.00" pattern={clockPattern}
@@ -162,6 +162,28 @@ export function EventFields({ event }) {
   const [activities, setActivities] = useState(() => eventActivities(event).map((item, key) => ({ ...item, key })));
   const nextKey = useRef(activities.length);
   const list = useRef(null);
+
+  function addActivity() {
+    const key = nextKey.current++;
+    setActivities((items) => [...items, { key, added: true }]);
+    requestAnimationFrame(() => {
+      const title = list.current?.querySelector(`[name="activity-${key}"]`);
+      title?.focus({ preventScroll: true });
+      title?.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    });
+  }
+
+  function removeActivity(key, control) {
+    const entry = control.closest('.activity-entry');
+    const target = entry.nextElementSibling?.querySelector('[data-activity-title]')
+      || entry.previousElementSibling?.querySelector('[data-activity-title]')
+      || list.current.querySelector('.add-activity');
+    target.focus({ preventScroll: true });
+    entry.inert = true;
+    entry.querySelector('.activity-input-row').disabled = true;
+    animateOut(entry, () => setActivities((items) => items.filter((item) => item.key !== key)));
+  }
+
   return <>
     <label>{t('Judul agenda', 'Agenda title')}<input name="title" defaultValue={event.title} maxLength={100} placeholder={t('Contoh: Perjalanan ke Surabaya', 'e.g. Trip to Surabaya')} required data-editor-focus /></label>
     <div className="form-row">
@@ -169,22 +191,28 @@ export function EventFields({ event }) {
       <EventPriority initial={event.priority} />
     </div>
     <fieldset className="event-activities" ref={list}>
-      <legend>{t('Rangkaian kegiatan', 'Itinerary')} <small>{t('(opsional)', '(optional)')}</small></legend>
+      <legend><span><ListChecks size={17} aria-hidden="true" />{t('Rangkaian kegiatan', 'Itinerary')} <small>{t('(opsional)', '(optional)')}</small></span></legend>
       {activities.length > 0 && <small id={timeHint} className="time-hint">{t('12.00 AM = tengah malam. 12.00 PM = tengah hari.', '12.00 AM is midnight. 12.00 PM is noon.')}</small>}
-      {activities.map(({ key, title, time }, index) => <div className="activity-input-row" key={key}>
-        <input type="hidden" name="activity" value={key} />
-        <label>{t('Kegiatan', 'Activity')} {index + 1}<input name={`activity-${key}`} maxLength={100} defaultValue={title} placeholder={t('Contoh: Berangkat', 'e.g. Depart')} /></label>
-        <EventTime time={time} row={key} index={index} describedBy={timeHint} />
-        <IconButton label={t(`Hapus kegiatan ${index + 1}`, `Remove activity ${index + 1}`)} onClick={() => {
-          setActivities((items) => items.filter((item) => item.key !== key));
-          list.current.querySelector('.add-activity').focus();
-        }}><X size={16} /></IconButton>
+      {activities.map(({ key, title, time, added }, index) => <div className="activity-entry" data-added={added} key={key}>
+        <div className="activity-clip">
+          <fieldset className="activity-input-row">
+            <input type="hidden" name="activity" value={key} />
+            <div className="activity-row-heading">
+              <label htmlFor={`${timeHint}-activity-${key}`}>
+                <span className="activity-step" aria-hidden="true">{index + 1}</span>{t('Kegiatan', 'Activity')} <span className="sr-only">{index + 1}</span>
+              </label>
+              <IconButton label={t(`Hapus kegiatan ${index + 1}`, `Remove activity ${index + 1}`)}
+                onClick={(click) => removeActivity(key, click.currentTarget)}><Trash2 size={15} /></IconButton>
+            </div>
+            <input id={`${timeHint}-activity-${key}`} name={`activity-${key}`} maxLength={100} data-activity-title
+              defaultValue={title} placeholder={t('Contoh: Berangkat', 'e.g. Depart')} />
+            <EventTime time={time} row={key} index={index} describedBy={timeHint} />
+          </fieldset>
+        </div>
       </div>)}
-      <button type="button" className="button button-secondary add-activity" disabled={activities.length >= 24} onClick={() => {
-        const key = nextKey.current++;
-        setActivities((items) => [...items, { key }]);
-        requestAnimationFrame(() => list.current?.querySelector(`[name="activity-${key}"]`)?.focus());
-      }}><Plus size={16} />{t('Tambah rincian kegiatan', 'Add activity')}</button>
+      <button type="button" className="button add-activity" disabled={activities.length >= 24} onClick={addActivity}>
+        <Plus size={16} />{t('Tambah rincian kegiatan', 'Add activity')}
+      </button>
     </fieldset>
     <label><span className="editor-time-label">{t('Catatan', 'Notes')} <small>{t('(opsional)', '(optional)')}</small></span>
       <textarea name="notes" defaultValue={event.notes} maxLength={1000} rows={2} placeholder={t('Tambahkan catatan untuk agenda ini', 'Add a note for this agenda')} />

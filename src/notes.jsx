@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowDown, ArrowUp, BookOpen, CheckSquare, FileText, Heading2, List, Plus, Save, Table2, Trash2, Type } from 'lucide-react';
+import { ArrowDown, ArrowUp, BookOpen, CheckSquare, Ellipsis, FileText, Heading2, List, Plus, Save, Table2, Trash2, Type } from 'lucide-react';
 import { formatDate, t } from './i18n.js';
 import { api, Feedback, IconButton, Modal, spaceName } from './ui.jsx';
 
@@ -42,26 +42,30 @@ function NoteTable({ block, index, update }) {
 }
 
 function NoteBlock({ block, index, total, update, move, remove }) {
-  const [, Icon, idLabel, enLabel] = blockTypes.find(([type]) => type === block.type);
+  const [, , idLabel, enLabel] = blockTypes.find(([type]) => type === block.type);
   const label = t(idLabel, enLabel);
-  return <section className="note-block" aria-label={`${label} ${index}`}>
-    <div className="note-block-bar">
-      <span><Icon size={14} aria-hidden="true" />{label}</span>
-      <div>
-        <IconButton label={t(`Naikkan blok ${index}`, `Move block ${index} up`)} disabled={index === 1} onClick={() => move(-1)}><ArrowUp size={14} /></IconButton>
-        <IconButton label={t(`Turunkan blok ${index}`, `Move block ${index} down`)} disabled={index === total} onClick={() => move(1)}><ArrowDown size={14} /></IconButton>
-        <IconButton label={t(`Hapus blok ${index}`, `Delete block ${index}`)} onClick={remove}><Trash2 size={14} /></IconButton>
-      </div>
-    </div>
+  return <div className="note-block">
     {block.type === 'table' ? <NoteTable block={block} index={index} update={update} /> :
       <div className={`note-block-field note-block-${block.type}`}>
         {block.type === 'bullet' && <span aria-hidden="true">•</span>}
         {block.type === 'checklist' && <input type="checkbox" checked={Boolean(block.checked)} onChange={(event) => update({ checked: event.target.checked })}
           aria-label={t(`Tandai checklist ${index}`, `Complete checklist item ${index}`)} />}
-        <textarea aria-label={`${label} ${index}`} maxLength={8000} value={block.text || ''} placeholder={t('Mulai menulis…', 'Start writing…')}
-          rows={block.type === 'text' ? 3 : 1} onChange={(event) => update({ text: event.target.value })} />
+        <div className="note-writing">
+          <span aria-hidden="true">{block.text || ''}{' '}</span>
+          <textarea aria-label={`${label} ${index}`} maxLength={8000} value={block.text || ''}
+            placeholder={block.type === 'heading' ? t('Judul bagian', 'Section heading') : t('Mulai menulis…', 'Start writing…')}
+            rows={1} onChange={(event) => update({ text: event.target.value })} />
+        </div>
       </div>}
-  </section>;
+    {total > 0 && <details className="note-block-tools" name="note-block-tools">
+      <summary aria-label={t(`Opsi ${label} ${index}`, `${label} ${index} options`)}><Ellipsis size={18} aria-hidden="true" /></summary>
+      <div>
+        <IconButton label={t(`Naikkan blok ${index}`, `Move block ${index} up`)} disabled={index === 1} onClick={() => move(-1)}><ArrowUp size={15} /></IconButton>
+        <IconButton label={t(`Turunkan blok ${index}`, `Move block ${index} down`)} disabled={index === total} onClick={() => move(1)}><ArrowDown size={15} /></IconButton>
+        <IconButton label={t(`Hapus blok ${index}`, `Delete block ${index}`)} onClick={remove}><Trash2 size={15} /></IconButton>
+      </div>
+    </details>}
+  </div>;
 }
 
 export function NotesPage({ space, unsaved }) {
@@ -196,10 +200,13 @@ export function NotesPage({ space, unsaved }) {
     });
   }
 
+  const blank = { id: `note-body-${selected}`, type: 'text', text: '' };
+  const shownBlocks = draft?.blocks.length ? draft.blocks : [blank];
+
   return <main className="page inner-page notes-page">
     <div className="page-heading"><span className="section-icon section-icon-blue"><BookOpen size={23} /></span><div><h1>{t('Catatan', 'Notes')}</h1><p>{spaceName(space)}</p></div></div>
     <div className="notes-layout">
-      <aside className="panel notes-index" aria-label={t('Daftar catatan', 'Notes list')}>
+      <aside className="notes-index" aria-label={t('Daftar catatan', 'Notes list')}>
         <div className="notes-index-heading"><h2>{t('Daftar catatan', 'Notes list')}</h2><IconButton label={t('Catatan baru', 'New note')} disabled={busy || !notes} onClick={create}><Plus size={19} /></IconButton></div>
         {notes?.length > 0 ? <ul>{notes.map((item) => <li key={item.id}>
           <button type="button" aria-current={item.id === selected ? 'true' : undefined} disabled={busy} onClick={() => open(item.id)}>
@@ -207,36 +214,39 @@ export function NotesPage({ space, unsaved }) {
           </button>
         </li>)}</ul> : <p>{notes ? t('Belum ada catatan.', 'No notes yet.') : !error && t('Memuat catatan…', 'Loading notes…')}</p>}
       </aside>
-      {draft ? <section className="panel note-editor">
+      {draft ? <section className="note-editor" aria-label={t('Editor catatan', 'Note editor')}>
         <form onSubmit={save}>
-          <fieldset className="note-editor-fields" disabled={busy}>
-            <div className="note-editor-toolbar">
-              <label className="note-title-label"><span className="sr-only">{t('Judul catatan', 'Note title')}</span>
-                <input className="note-title" value={draft.title} maxLength={120} required onChange={(event) => edit(() => ({ title: event.target.value }))} />
-              </label>
-              <IconButton label={t('Hapus catatan', 'Delete note')} onClick={() => { setError(''); setDeleteOpen(true); }}><Trash2 size={18} /></IconButton>
-            </div>
-            <div className="note-blocks">
-              {draft.blocks.map((block, index) => <div id={block.id} key={block.id}>
-                <NoteBlock block={block} index={index + 1} total={draft.blocks.length}
-                  update={(fields) => edit(({ blocks }) => ({ blocks: blocks.map((item) => item.id === block.id ? { ...item, ...fields } : item) }))}
-                  move={(step) => move(index, step)} remove={() => edit(({ blocks }) => ({ blocks: blocks.filter((item) => item.id !== block.id) }))} />
-              </div>)}
-            </div>
+          <div className="note-editor-toolbar">
             <div className="note-add" role="group" aria-label={t('Tambah blok', 'Add a block')}>
-              {blockTypes.map(([type, Icon, idLabel, enLabel]) => <button type="button" className="button button-secondary" disabled={draft.blocks.length >= 100} key={type} onClick={() => add(type)}>
+              {blockTypes.map(([type, Icon, idLabel, enLabel]) => <button type="button" className="button" disabled={busy || draft.blocks.length >= 100} key={type} onClick={() => add(type)}>
                 <Icon size={15} aria-hidden="true" />{t(idLabel, enLabel)}
               </button>)}
             </div>
-          </fieldset>
-          {!deleteOpen && <Feedback error={error} />}
-          <div className="settings-actions"><p role="status">{dirty ? t('Belum disimpan', 'Unsaved changes') : saved ? t('Catatan disimpan.', 'Note saved.') : ''}</p>
-            <button className="button button-primary" disabled={busy || !dirty}><Save size={17} />{t('Simpan catatan', 'Save note')}</button>
+            <div className="note-toolbar-actions">
+              <IconButton label={t('Hapus catatan', 'Delete note')} disabled={busy} onClick={() => { setError(''); setDeleteOpen(true); }}><Trash2 size={18} /></IconButton>
+              <button className="button button-primary" disabled={busy || !dirty}><Save size={16} />{t('Simpan catatan', 'Save note')}</button>
+            </div>
           </div>
+          <p className="note-save-state" role="status">{dirty ? t('Belum disimpan', 'Unsaved changes') : saved ? t('Catatan disimpan.', 'Note saved.') : ''}</p>
+          {!deleteOpen && <Feedback error={error} />}
           {error && !deleteOpen && <button className="text-button" type="button" disabled={busy} onClick={() => {
             if (!canDiscard()) return;
             markDirty(false); setDraft(null); setError(''); setRetry((value) => value + 1);
           }}>{t('Muat ulang catatan', 'Reload note')}</button>}
+          <fieldset className="note-paper" disabled={busy}>
+            <label className="note-title-label"><span className="sr-only">{t('Judul catatan', 'Note title')}</span>
+              <input className="note-title" value={draft.title} maxLength={120} required onChange={(event) => edit(() => ({ title: event.target.value }))} />
+            </label>
+            <div className="note-blocks">
+              {shownBlocks.map((block, index) => <div id={block.id} key={block.id}>
+                <NoteBlock block={block} index={index + 1} total={draft.blocks.length}
+                  update={(fields) => edit(({ blocks }) => ({
+                    blocks: blocks.length ? blocks.map((item) => item.id === block.id ? { ...item, ...fields } : item) : [{ ...blank, ...fields }],
+                  }))}
+                  move={(step) => move(index, step)} remove={() => edit(({ blocks }) => ({ blocks: blocks.filter((item) => item.id !== block.id) }))} />
+              </div>)}
+            </div>
+          </fieldset>
         </form>
       </section> : <section className="panel empty-feature notes-empty">
         <span className="section-icon section-icon-blue"><BookOpen size={22} /></span>

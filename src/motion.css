@@ -54,8 +54,10 @@ body:has(.animated-dialog[open]) { overflow: hidden; }
 .agenda-dialog[open]::backdrop { backdrop-filter: blur(7px); }
 .animated-dialog[open][data-closing] { animation: dialog-exit var(--motion-exit) var(--motion-ease) both; pointer-events: none; }
 .animated-dialog[open][data-closing]::backdrop { animation: backdrop-exit var(--motion-exit) var(--motion-ease) both; }
-.agenda-editor { animation: editor-enter var(--motion-panel) var(--motion-ease) 35ms both; }
-.agenda-editor[data-closing] { animation: editor-exit var(--motion-exit) var(--motion-ease) both; pointer-events: none; }
+.agenda-editor { animation: editor-enter 230ms var(--motion-ease) 25ms both; }
+.agenda-editor[data-closing] { animation: editor-exit 150ms var(--motion-ease) both; pointer-events: none; }
+.activity-entry[data-added] { animation: activity-enter 200ms var(--motion-ease) both; }
+.activity-entry[data-closing] { animation: activity-exit 145ms var(--motion-ease) both; }
 .skeleton-block::after {
   position: absolute; inset: 0; content: ''; background: linear-gradient(90deg, transparent, #ffffff96, transparent);
   animation: shimmer 1.25s linear infinite;
@@ -72,6 +74,8 @@ body:has(.animated-dialog[open]) { overflow: hidden; }
 @keyframes backdrop-exit { to { opacity: 0; } }
 @keyframes editor-enter { from { opacity: 0; transform: translate(var(--editor-axis)); } }
 @keyframes editor-exit { to { opacity: 0; transform: translate(var(--editor-axis)); } }
+@keyframes activity-enter { from { grid-template-rows: 0fr; opacity: 0; transform: translateY(-4px); } }
+@keyframes activity-exit { to { grid-template-rows: 0fr; opacity: 0; transform: translateY(-4px); } }
 @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 @keyframes room-wait { from { opacity: .35; transform: scaleX(.35); } to { opacity: .75; transform: scaleX(.75); } }
 @keyframes field-menu-enter { from { opacity: 0; transform: translateY(-4px); } }

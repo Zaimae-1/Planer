@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { CalendarDays, Clock3, Flag, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { CalendarDays, CalendarPlus, Clock3, Flag, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { fromKey } from '../shared/dates.js';
 import { EventFields, priorities } from './event-fields.jsx';
 import { agendaStart, formatEventTime, toEventTime } from './event-time.js';
@@ -39,6 +39,7 @@ function EventEditor({ event, panel, close, onSave }) {
   const [error, setError] = useState('');
   const titleId = useId();
   const title = event.remove ? t('Hapus agenda?', 'Delete agenda?') : event.id ? t('Edit agenda', 'Edit agenda') : t('Tambah agenda', 'Add agenda');
+  const Icon = event.remove ? Trash2 : event.id ? Pencil : CalendarPlus;
   async function submit(e) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
@@ -61,14 +62,34 @@ function EventEditor({ event, panel, close, onSave }) {
     finally { setBusy(false); }
   }
   return <section className="agenda-editor" ref={panel} aria-labelledby={titleId}>
-    <div className="modal-heading"><h3 id={titleId}>{title}</h3></div>
-    <form className="form" onSubmit={submit}>
-      {event.remove ? <p className="muted">{t(`Agenda “${event.title}” akan dihapus dari kalender.`, `“${event.title}” will be removed from the calendar.`)}</p> : <EventFields event={event} />}
-      <Feedback error={error} />
-      <div className="modal-actions"><button type="button" className="button button-secondary" onClick={close} disabled={busy} data-editor-focus={event.remove ? '' : undefined}>{t('Batal', 'Cancel')}</button>
-        <button className={`button ${event.remove ? 'button-danger' : 'button-primary'}`} disabled={busy}>{busy ? t('Memproses…', 'Working…') : event.remove ? t('Hapus agenda', 'Delete agenda') : t('Simpan agenda', 'Save agenda')}</button></div>
+    <header className="agenda-editor-heading">
+      <span className={`section-icon ${event.remove ? 'section-icon-orange' : 'section-icon-blue'}`}><Icon size={21} aria-hidden="true" /></span>
+      <h3 id={titleId}>{title}</h3>
+    </header>
+    <form className="form agenda-form" onSubmit={submit}>
+      <div className="agenda-editor-fields">
+        {event.remove ? <p className="muted">{t(`Agenda “${event.title}” akan dihapus dari kalender.`, `“${event.title}” will be removed from the calendar.`)}</p> : <EventFields event={event} />}
+      </div>
+      <footer className="agenda-editor-footer">
+        <Feedback error={error} />
+        <div className="modal-actions">
+          <button type="button" className="button button-secondary" onClick={close} disabled={busy}
+            data-editor-focus={event.remove ? '' : undefined}>{t('Batal', 'Cancel')}</button>
+          <button className={`button ${event.remove ? 'button-danger' : 'button-primary'}`} disabled={busy}>
+            {busy ? t('Memproses…', 'Working…') : event.remove ? t('Hapus agenda', 'Delete agenda') : t('Simpan agenda', 'Save agenda')}
+          </button>
+        </div>
+      </footer>
     </form>
   </section>;
+}
+
+function animatePosition(element, previous, options) {
+  const next = element.getBoundingClientRect();
+  return element.animate([
+    { transform: `translate(${previous.left - next.left}px, ${previous.top - next.top}px)` },
+    { transform: 'none' },
+  ], options);
 }
 
 export function AgendaDialog({ date, startAdding, close, onSave, ...details }) {
@@ -85,8 +106,9 @@ export function AgendaDialog({ date, startAdding, close, onSave, ...details }) {
 
   function rememberLayout() {
     previousLayout.current = {
-      left: overview.current.getBoundingClientRect().left,
-      width: surface.current.getBoundingClientRect().width,
+      overview: overview.current.getBoundingClientRect(),
+      surface: surface.current.getBoundingClientRect(),
+      closeButton: closeButton.current.getBoundingClientRect(),
     };
   }
 
@@ -110,19 +132,22 @@ export function AgendaDialog({ date, startAdding, close, onSave, ...details }) {
     movements.current.forEach((animation) => animation.cancel());
     movements.current = [];
     if (!before || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const panel = overview.current;
-    const width = surface.current.getBoundingClientRect().width;
-    if (Math.abs(before.width - width) < 1) return;
-    const shift = before.left - panel.getBoundingClientRect().left;
-    const style = getComputedStyle(panel);
+    const next = surface.current.getBoundingClientRect();
+    if (Math.abs(before.surface.width - next.width) < 1) return;
+    const style = getComputedStyle(surface.current);
     const options = {
       duration: Number.parseFloat(style.getPropertyValue('--motion-panel')),
       easing: style.getPropertyValue('--motion-ease').trim(),
     };
+    const dx = before.surface.left + before.surface.width / 2 - next.left - next.width / 2;
+    const dy = before.surface.top + before.surface.height / 2 - next.top - next.height / 2;
     movements.current = [
-      surface.current.animate([{ transform: `scaleX(${before.width / width})` }, { transform: 'none' }], options),
-      panel.animate([{ transform: `translateX(${shift}px)` }, { transform: 'none' }], options),
-      closeButton.current.animate([{ transform: `translateX(${(before.width - width) / 2}px)` }, { transform: 'none' }], options),
+      surface.current.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(${before.surface.width / next.width}, ${before.surface.height / next.height})` },
+        { transform: 'none' },
+      ], options),
+      animatePosition(overview.current, before.overview, options),
+      animatePosition(closeButton.current, before.closeButton, options),
     ];
   }, [editor]);
 
